@@ -55,6 +55,18 @@
   .live .meta{font-size:.76rem;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .live .timer{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.15rem;font-weight:700;color:var(--accent-2);}
   .btn-saida{padding:13px 16px;border:none;border-radius:11px;background:var(--saida);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;box-shadow:0 3px 0 var(--saida-d);}
+  .live-btns{display:flex;flex-direction:column;gap:6px;flex:none;}
+  .btn-atv{padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2);color:var(--accent-2);font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;}
+  .btn-atv.end{background:var(--warn);color:#1a1200;border-color:var(--warn);}
+  .atv-list{font-size:.72rem;color:var(--accent-2);margin-top:5px;line-height:1.4;}
+  .atv-now{font-size:.78rem;color:var(--warn);font-weight:700;margin-top:5px;}.atv-now .atvtimer{font-family:var(--mono);}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%;}
+  .modal-box h3{margin:0 0 6px;font-size:1.1rem;}.modal-box p{margin:0 0 14px;font-size:.84rem;color:var(--ink-2);}
+  .atv-choices{display:flex;flex-direction:column;gap:10px;}
+  .atv-choices button{padding:15px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-weight:700;font-size:1rem;cursor:pointer;}
+  .atv-choices button:active{background:var(--accent);color:#04201f;}
+  .modal-cancel{margin-top:12px;width:100%;padding:12px;border:none;background:transparent;color:var(--ink-2);font-weight:700;cursor:pointer;}
   .btn-saida:active{transform:translateY(2px);box-shadow:0 1px 0 var(--saida-d);}
   .empty{color:var(--muted);font-size:.85rem;text-align:center;padding:14px 0;}
 
@@ -142,6 +154,19 @@
 
 <div class="toast" id="toast"></div>
 
+<div id="atvModal" class="modal" style="display:none">
+  <div class="modal-box">
+    <h3>Qual atividade?</h3>
+    <p>O que o operador vai fazer agora? A carreta fica <b>pausada</b>, e essa atividade vira um atendimento próprio.</p>
+    <div class="atv-choices">
+      <button onclick="escolherAtv('Carregamento')">Carregamento</button>
+      <button onclick="escolherAtv('Descarregamento')">Descarregamento</button>
+      <button onclick="escolherAtv('Descarregar e Carregar')">Descarr. + Carreg.</button>
+    </div>
+    <button class="modal-cancel" onclick="fecharAtv()">Cancelar</button>
+  </div>
+</div>
+
 <script>
 "use strict";
 const PLACAS = ["PQW-3J17","SMQ-8E34","UJM-9A67","ROA-9H51","ROJ-8A15","ROX-8A70","SNC-7C72","PSS-7576","ROX-5A86","PSX-9112","NNB-9842","NXC-2740","ROA-9H59","FRETE"];
@@ -203,7 +228,7 @@ function registrarEntrada(){
   if(placa==="__nova__"){ placa=$("novaPlaca").value.trim().toUpperCase(); if(!placa){ toast("Digite a placa"); $("novaPlaca").focus(); return; } if(!PLACAS.includes(placa)) PLACAS.splice(PLACAS.length-1,0,placa); }
   let oper=$("operador").value; if(!oper || oper==="__outro__"){ toast("Escolha o operador"); $("operador").focus(); return; }
   const turno=$("turno").value; if(!turno){ toast("Escolha o turno"); $("turno").focus(); return; }
-  const rec={ key:Date.now()+"_"+Math.random().toString(36).slice(2,6), placa, op:opSel, oper, turno, entradaISO:new Date().toISOString() };
+  const rec={ key:Date.now()+"_"+Math.random().toString(36).slice(2,6), placa, op:opSel, oper, turno, entradaISO:new Date().toISOString(), atividades:[], atividadeAtual:null };
   state.emAndamento.push(rec); save(); render();
   // reset placa nova
   fillSelect($("placa"),PLACAS,`<option value="__nova__">+ Nova placa…</option>`, "— Selecione a placa —"); $("novaPlacaWrap").style.display="none";
@@ -214,14 +239,27 @@ function registrarSaida(key){
   const i=state.emAndamento.findIndex(r=>r.key===key); if(i<0)return;
   const r=state.emAndamento[i];
   if(!confirm("Confirmar SAÍDA do veículo "+r.placa+"?\n(entrada às "+hhmm(new Date(r.entradaISO))+")")) return;
-  const saida=new Date(); const entrada=new Date(r.entradaISO);
-  const durMin=Math.max(0,(saida-entrada)/60000);
-  const novo={ id:nextId(), dataISO:entrada.toISOString(), placa:r.placa, op:r.op, oper:r.oper, turno:r.turno, entradaISO:r.entradaISO, saidaISO:saida.toISOString(), durMin, enviado:false };
-  state.concluidos.push(novo);
+  if(r.atividadeAtual) encerrarAtividade(key);          // fecha atividade aberta
+  const saida=new Date(), entrada=new Date(r.entradaISO);
+  const totalMin=Math.max(0,(saida-entrada)/60000);
+  const atvs=r.atividades||[];
+  const somaAtv=atvs.reduce((s,a)=>s+(a.durMin||0),0);
+  const netMin=Math.max(0, totalMin-somaAtv);           // carreta = tempo líquido
+  const novos=[];
+  novos.push({ id:nextId(), dataISO:entrada.toISOString(), placa:r.placa, op:r.op, oper:r.oper, turno:r.turno, entradaISO:r.entradaISO, saidaISO:saida.toISOString(), durMin:netMin, enviado:false });
+  atvs.forEach(a=>novos.push({ id:nextId(), dataISO:new Date(a.entradaISO).toISOString(), placa:r.placa, op:a.op, oper:r.oper, turno:r.turno, entradaISO:a.entradaISO, saidaISO:a.saidaISO, durMin:a.durMin, enviado:false }));
+  novos.forEach(n=>state.concluidos.push(n));
   state.emAndamento.splice(i,1); save(); render();
-  enviarPonte(novo);
-  toast("Saída: "+r.placa+" · durou "+fmtDur(durMin));
+  novos.forEach(enviarPonte);
+  toast("Saída: "+r.placa+" · "+fmtDur(netMin)+(atvs.length?` (+${atvs.length} atividade${atvs.length>1?'s':''})`:""));
 }
+
+let _atvKey=null;
+function abrirAtv(key){ _atvKey=key; const m=$("atvModal"); if(m) m.style.display="flex"; }
+function fecharAtv(){ _atvKey=null; const m=$("atvModal"); if(m) m.style.display="none"; }
+function escolherAtv(op){ if(_atvKey) iniciarAtividade(_atvKey, op); fecharAtv(); }
+function iniciarAtividade(key, op){ const r=state.emAndamento.find(x=>x.key===key); if(!r) return; r.atividades=r.atividades||[]; r.atividadeAtual={op, entradaISO:new Date().toISOString()}; save(); render(); toast("Atividade iniciada: "+op); }
+function encerrarAtividade(key){ const r=state.emAndamento.find(x=>x.key===key); if(!r||!r.atividadeAtual) return; const a=r.atividadeAtual, fim=new Date(), dur=Math.max(0,(fim-new Date(a.entradaISO))/60000); (r.atividades=r.atividades||[]).push({op:a.op, entradaISO:a.entradaISO, saidaISO:fim.toISOString(), durMin:dur}); r.atividadeAtual=null; save(); render(); toast("Atividade encerrada: "+a.op+" · "+fmtDur(dur)); }
 
 function excluir(id){ if(!confirm("Excluir este registro?"))return; state.concluidos=state.concluidos.filter(r=>r.id!==id); save(); render(); }
 
@@ -244,9 +282,15 @@ function render(){
   if(!state.emAndamento.length){ ea.innerHTML=`<div class="empty">Nenhum atendimento aberto. Toque em ENTRADA quando o veículo chegar.</div>`; }
   else{ ea.innerHTML=state.emAndamento.map(r=>`
     <div class="live" data-key="${r.key}">
-      <div class="info"><div class="placa">${r.placa}</div><div class="meta">${r.op} · ${r.oper} · Turno ${r.turno} · entrada ${hhmm(new Date(r.entradaISO))}</div></div>
+      <div class="info"><div class="placa">${r.placa}</div><div class="meta">${r.op} · ${r.oper} · T${r.turno} · ent ${hhmm(new Date(r.entradaISO))}</div>
+        ${(r.atividades&&r.atividades.length)?`<div class="atv-list">↪ ${r.atividades.map(a=>a.op.replace("Descarregar e Carregar","Desc.+Carr.").replace("Descarregamento","Descarregar")+" "+fmtDur(a.durMin)).join(" · ")}</div>`:``}
+        ${r.atividadeAtual?`<div class="atv-now">⏸ Fazendo: ${r.atividadeAtual.op} · <span class="atvtimer" data-ini="${r.atividadeAtual.entradaISO}">00:00</span></div>`:``}
+      </div>
       <div class="timer" data-entrada="${r.entradaISO}">00:00</div>
-      <button class="btn-saida" onclick="registrarSaida('${r.key}')">■ SAÍDA</button>
+      <div class="live-btns">
+        ${r.atividadeAtual?`<button class="btn-atv end" onclick="encerrarAtividade('${r.key}')">■ Fim atividade</button>`:`<button class="btn-atv" onclick="abrirAtv('${r.key}')">➕ Atividade</button>`}
+        <button class="btn-saida" onclick="registrarSaida('${r.key}')">■ SAÍDA</button>
+      </div>
     </div>`).join(""); }
   // concluidos
   const cs=[...state.concluidos].sort((a,b)=>new Date(b.saidaISO)-new Date(a.saidaISO));
@@ -263,8 +307,8 @@ function render(){
 }
 
 function tickTimers(){
-  document.querySelectorAll(".timer").forEach(el=>{
-    const s=(Date.now()-new Date(el.dataset.entrada))/1000;
+  document.querySelectorAll(".timer, .atvtimer").forEach(el=>{
+    const s=(Date.now()-new Date(el.dataset.entrada||el.dataset.ini))/1000;
     const h=Math.floor(s/3600), m=Math.floor(s%3600/60), sec=Math.floor(s%60);
     el.textContent = h? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
   });
@@ -292,6 +336,7 @@ function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("sho
 function clock(){ const d=new Date(); $("clock").textContent=hhmm(d); $("today").textContent=d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}); $("turnoTag").textContent="Turno "+turnoPorHora(d); }
 
 window.registrarSaida=registrarSaida; window.excluir=excluir; window.reenviarUm=reenviarUm;
+window.abrirAtv=abrirAtv; window.fecharAtv=fecharAtv; window.escolherAtv=escolherAtv; window.encerrarAtividade=encerrarAtividade;
 initForm(); render(); clock(); tickTimers(); reenviarPendentes(); { const dt=$("devtag"); if(dt) dt.textContent=deviceCode(); }
 setInterval(tickTimers,1000); setInterval(clock,10000);
 </script>
