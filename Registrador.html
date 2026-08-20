@@ -151,8 +151,8 @@ const TURNOS = ["A","B","C"];
 const LS_KEY = "dibrasa_registros_v1";
 const LS_ID  = "dibrasa_lastid_v1";
 const LS_DEV = "dibrasa_device_v1";
-const PONTE_URL = "https://script.google.com/macros/s/AKfycbw-s1iRmm00NYCFFS7mDTAaRsVgnNJAy47lrZ37cXJ0HdEJCOdAHSFtyzH6tlMV3s_L/exec";
-const PONTE_TOKEN = "dibrasa-patio";
+const FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSfSZbh4wM5pQ5_peGhXNTFpnJhRlMixrLit4WD6d3vRFgfuhA/formResponse";
+const ENTRY_FIELD = "entry.1160180969";
 
 // armazenamento resiliente (localStorage; cai p/ memória se indisponível)
 const _mem = {};
@@ -226,12 +226,12 @@ function registrarSaida(key){
 function excluir(id){ if(!confirm("Excluir este registro?"))return; state.concluidos=state.concluidos.filter(r=>r.id!==id); save(); render(); }
 
 function enviarPonte(r){
-  if(!PONTE_URL) return;
+  if(!FORM_ACTION) return;
   const d=new Date(r.dataISO);
-  const payload={ token:PONTE_TOKEN, id:r.id, data:`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`,
-    turno:r.turno, operador:r.oper, placa:r.placa, operacao:r.op,
-    entrada:hhmm(new Date(r.entradaISO)), saida:hhmm(new Date(r.saidaISO)), duracao:Math.round(r.durMin) };
-  fetch(PONTE_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+  const linha=[r.id, `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`, r.turno, r.oper, r.placa, r.op,
+    hhmm(new Date(r.entradaISO)), hhmm(new Date(r.saidaISO)), Math.round(r.durMin)].join(";");
+  const body=ENTRY_FIELD+"="+encodeURIComponent(linha);
+  fetch(FORM_ACTION,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body})
     .then(()=>marcarEnviado(r.id,true)).catch(()=>marcarEnviado(r.id,false));
 }
 function marcarEnviado(id,ok){ const rec=state.concluidos.find(x=>x.id===id); if(rec){ rec.enviado=ok; save(); render(); } }
