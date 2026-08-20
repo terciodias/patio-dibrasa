@@ -159,9 +159,10 @@
     <h3>Qual atividade?</h3>
     <p>O que o operador vai fazer agora? A carreta fica <b>pausada</b>, e essa atividade vira um atendimento próprio.</p>
     <div class="atv-choices">
-      <button onclick="escolherAtv('Carregamento')">Carregamento</button>
-      <button onclick="escolherAtv('Descarregamento')">Descarregamento</button>
-      <button onclick="escolherAtv('Descarregar e Carregar')">Descarr. + Carreg.</button>
+      <button onclick="escolherAtv('Carregar carro de rota')">Carregar carro de rota</button>
+      <button onclick="escolherAtv('Descarregar carro de rota')">Descarregar carro de rota</button>
+      <button onclick="escolherAtv('Oficina')">Oficina</button>
+      <button onclick="escolherAtv('Outros')">Outros</button>
     </div>
     <button class="modal-cancel" onclick="fecharAtv()">Cancelar</button>
   </div>
@@ -257,7 +258,7 @@ function registrarSaida(key){
 let _atvKey=null;
 function abrirAtv(key){ _atvKey=key; const m=$("atvModal"); if(m) m.style.display="flex"; }
 function fecharAtv(){ _atvKey=null; const m=$("atvModal"); if(m) m.style.display="none"; }
-function escolherAtv(op){ if(_atvKey) iniciarAtividade(_atvKey, op); fecharAtv(); }
+function escolherAtv(op){ if(op==="Outros"){ const nome=prompt("Qual atividade? (descreva)"); if(nome===null) return; op=nome.trim()||"Outros"; } if(_atvKey) iniciarAtividade(_atvKey, op); fecharAtv(); }
 function iniciarAtividade(key, op){ const r=state.emAndamento.find(x=>x.key===key); if(!r) return; r.atividades=r.atividades||[]; r.atividadeAtual={op, entradaISO:new Date().toISOString()}; save(); render(); toast("Atividade iniciada: "+op); }
 function encerrarAtividade(key){ const r=state.emAndamento.find(x=>x.key===key); if(!r||!r.atividadeAtual) return; const a=r.atividadeAtual, fim=new Date(), dur=Math.max(0,(fim-new Date(a.entradaISO))/60000); (r.atividades=r.atividades||[]).push({op:a.op, entradaISO:a.entradaISO, saidaISO:fim.toISOString(), durMin:dur}); r.atividadeAtual=null; save(); render(); toast("Atividade encerrada: "+a.op+" · "+fmtDur(dur)); }
 
