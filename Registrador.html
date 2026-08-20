@@ -71,9 +71,11 @@
   .stat .n{font-size:1.4rem;font-weight:800;font-variant-numeric:tabular-nums;}
   .stat .l{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:650;}
 
-  .actions{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:16px;}
-  .actions button{padding:14px;border-radius:12px;font-weight:700;font-size:.92rem;cursor:pointer;border:1px solid var(--line);}
+  .actions{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .actions button,.actions .btn-drive{padding:14px;border-radius:12px;font-weight:700;font-size:.92rem;cursor:pointer;border:1px solid var(--line);text-align:center;text-decoration:none;display:block;}
   .btn-export{background:var(--accent);border-color:var(--accent);color:#04201f;}
+  .actions-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn-drive{background:var(--panel-2);color:var(--accent-2);border-color:var(--accent);}
   .btn-clear{background:transparent;color:var(--ink-2);}
   .hint{font-size:.74rem;color:var(--muted);margin-top:12px;text-align:center;line-height:1.5;}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(120px);background:var(--accent);color:#04201f;font-weight:700;padding:12px 20px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.4);transition:transform .25s;z-index:50;font-size:.9rem;}
@@ -125,7 +127,10 @@
     <div id="tabelaWrap"><div class="empty">Nenhum atendimento concluído ainda.</div></div>
     <div class="actions">
       <button class="btn-export" id="btnExport">⬇  Exportar planilha</button>
-      <button class="btn-clear" id="btnClear">Limpar dia</button>
+      <div class="actions-row">
+        <a class="btn-drive" href="https://drive.google.com/drive/folders/1z9vmav7GO5AQ0-VgOy8AvTmavS1WUqeK" target="_blank" rel="noopener">📁 Abrir pasta do Drive</a>
+        <button class="btn-clear" id="btnClear">Limpar dia</button>
+      </div>
     </div>
     <div class="hint">Os registros ficam salvos neste aparelho. Depois de exportar, coloque o arquivo na pasta do projeto e rode <b>Atualizar Painel.bat</b>.<br>Aparelho: <b id="devtag">—</b> — cada celular tem um código próprio para os registros não se misturarem.</div>
   </div>
