@@ -175,7 +175,7 @@ function initForm(){
   fillSelect($("placa"), PLACAS, `<option value="__nova__">+ Nova placa…</option>`, "— Selecione a placa —");
   fillSelect($("operador"), OPERADORES, `<option value="__outro__">+ Outro…</option>`, "— Selecione o operador —");
   fillSelect($("turno"), TURNOS, "", "— Turno —");
-  $("opChoices").innerHTML = OPERACOES.map(o=>`<button data-op="${o}">${o.replace("Descarregar e Carregar","Descarr. + Carreg.").replace("Descarregamento","Descarregar")}</button>`).join("");
+  $("opChoices").innerHTML = OPERACOES.map(o=>`<button data-op="${o}">${o.replace("Descarregar e Carregar","Descarr. + Carreg.")}</button>`).join("");
   updateOpButtons();
   $("opChoices").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return; opSel=b.dataset.op; updateOpButtons(); });
   $("placa").addEventListener("change", e=>{ $("novaPlacaWrap").style.display = e.target.value==="__nova__"?"block":"none"; if(e.target.value==="__nova__") $("novaPlaca").focus(); });
