@@ -65,6 +65,10 @@
   tr:last-child td{border-bottom:none;}
   .dur{font-weight:700;color:var(--accent-2);}
   .del{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:2px 6px;border-radius:7px;}
+  .acts{white-space:nowrap;text-align:right;}
+  .env{display:inline-block;font-size:.9rem;margin-right:6px;vertical-align:middle;font-weight:700;}
+  .env.ok{color:var(--entrada);}
+  .env.pend{color:var(--warn);cursor:pointer;}
   .del:active{background:var(--panel-2);color:var(--saida);}
   .stat{display:flex;gap:16px;margin-bottom:10px;}
   .stat div{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;}
@@ -132,7 +136,7 @@
         <button class="btn-clear" id="btnClear">Limpar dia</button>
       </div>
     </div>
-    <div class="hint">Os registros ficam salvos neste aparelho. Depois de exportar, coloque o arquivo na pasta do projeto e rode <b>Atualizar Painel.bat</b>.<br>Aparelho: <b id="devtag">—</b> — cada celular tem um código próprio para os registros não se misturarem.</div>
+    <div class="hint">Cada <b>Saída</b> é enviada automaticamente para o sistema (☁✓). Os botões acima são <b>backup</b> — use só se ficar sem internet (aí aparece ↻ para reenviar).<br>Aparelho: <b id="devtag">—</b> — cada celular tem um código próprio para os registros não se misturarem.</div>
   </div>
 </div>
 
@@ -147,6 +151,8 @@ const TURNOS = ["A","B","C"];
 const LS_KEY = "dibrasa_registros_v1";
 const LS_ID  = "dibrasa_lastid_v1";
 const LS_DEV = "dibrasa_device_v1";
+const PONTE_URL = "https://script.google.com/macros/s/AKfycbw-s1iRmm00NYCFFS7mDTAaRsVgnNJAy47lrZ37cXJ0HdEJCOdAHSFtyzH6tlMV3s_L/exec";
+const PONTE_TOKEN = "dibrasa-patio";
 
 // armazenamento resiliente (localStorage; cai p/ memória se indisponível)
 const _mem = {};
@@ -206,14 +212,31 @@ function registrarEntrada(){
 
 function registrarSaida(key){
   const i=state.emAndamento.findIndex(r=>r.key===key); if(i<0)return;
-  const r=state.emAndamento[i]; const saida=new Date(); const entrada=new Date(r.entradaISO);
+  const r=state.emAndamento[i];
+  if(!confirm("Confirmar SAÍDA do veículo "+r.placa+"?\n(entrada às "+hhmm(new Date(r.entradaISO))+")")) return;
+  const saida=new Date(); const entrada=new Date(r.entradaISO);
   const durMin=Math.max(0,(saida-entrada)/60000);
-  state.concluidos.push({ id:nextId(), dataISO:entrada.toISOString(), placa:r.placa, op:r.op, oper:r.oper, turno:r.turno, entradaISO:r.entradaISO, saidaISO:saida.toISOString(), durMin });
+  const novo={ id:nextId(), dataISO:entrada.toISOString(), placa:r.placa, op:r.op, oper:r.oper, turno:r.turno, entradaISO:r.entradaISO, saidaISO:saida.toISOString(), durMin, enviado:false };
+  state.concluidos.push(novo);
   state.emAndamento.splice(i,1); save(); render();
+  enviarPonte(novo);
   toast("Saída: "+r.placa+" · durou "+fmtDur(durMin));
 }
 
 function excluir(id){ if(!confirm("Excluir este registro?"))return; state.concluidos=state.concluidos.filter(r=>r.id!==id); save(); render(); }
+
+function enviarPonte(r){
+  if(!PONTE_URL) return;
+  const d=new Date(r.dataISO);
+  const payload={ token:PONTE_TOKEN, id:r.id, data:`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`,
+    turno:r.turno, operador:r.oper, placa:r.placa, operacao:r.op,
+    entrada:hhmm(new Date(r.entradaISO)), saida:hhmm(new Date(r.saidaISO)), duracao:Math.round(r.durMin) };
+  fetch(PONTE_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+    .then(()=>marcarEnviado(r.id,true)).catch(()=>marcarEnviado(r.id,false));
+}
+function marcarEnviado(id,ok){ const rec=state.concluidos.find(x=>x.id===id); if(rec){ rec.enviado=ok; save(); render(); } }
+function reenviarUm(id){ const rec=state.concluidos.find(x=>x.id===id); if(rec) enviarPonte(rec); }
+function reenviarPendentes(){ state.concluidos.filter(r=>!r.enviado).forEach(enviarPonte); }
 
 function render(){
   // em andamento
@@ -236,7 +259,7 @@ function render(){
       <td>${r.op.replace("Descarregar e Carregar","Desc.+Carr.").replace("Descarregamento","Descarregar")}</td>
       <td class="num">${hhmm(new Date(r.entradaISO))}</td><td class="num">${hhmm(new Date(r.saidaISO))}</td>
       <td class="num dur">${fmtDur(r.durMin)}</td>
-      <td><button class="del" onclick="excluir(${r.id})">✕</button></td></tr>`).join("")+`</tbody></table>`; }
+      <td class="acts">${r.enviado?'<span class="env ok" title="enviado ao sistema">☁✓</span>':`<span class="env pend" title="pendente — toque para reenviar" onclick="reenviarUm('${r.id}')">↻</span>`}<button class="del" onclick="excluir('${r.id}')">✕</button></td></tr>`).join("")+`</tbody></table>`; }
 }
 
 function tickTimers(){
@@ -268,8 +291,8 @@ function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("sho
 
 function clock(){ const d=new Date(); $("clock").textContent=hhmm(d); $("today").textContent=d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}); $("turnoTag").textContent="Turno "+turnoPorHora(d); }
 
-window.registrarSaida=registrarSaida; window.excluir=excluir;
-initForm(); render(); clock(); tickTimers(); { const dt=$("devtag"); if(dt) dt.textContent=deviceCode(); }
+window.registrarSaida=registrarSaida; window.excluir=excluir; window.reenviarUm=reenviarUm;
+initForm(); render(); clock(); tickTimers(); reenviarPendentes(); { const dt=$("devtag"); if(dt) dt.textContent=deviceCode(); }
 setInterval(tickTimers,1000); setInterval(clock,10000);
 </script>
 </body>
