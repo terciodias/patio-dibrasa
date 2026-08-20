@@ -247,8 +247,8 @@ function registrarSaida(key){
   const somaAtv=atvs.reduce((s,a)=>s+(a.durMin||0),0);
   const netMin=Math.max(0, totalMin-somaAtv);           // carreta = tempo líquido
   const novos=[];
-  novos.push({ id:nextId(), dataISO:entrada.toISOString(), placa:r.placa, op:r.op, oper:r.oper, turno:r.turno, entradaISO:r.entradaISO, saidaISO:saida.toISOString(), durMin:netMin, enviado:false });
-  atvs.forEach(a=>novos.push({ id:nextId(), dataISO:new Date(a.entradaISO).toISOString(), placa:r.placa, op:a.op, oper:r.oper, turno:r.turno, entradaISO:a.entradaISO, saidaISO:a.saidaISO, durMin:a.durMin, enviado:false }));
+  novos.push({ id:nextId(), dataISO:entrada.toISOString(), placa:r.placa, op:r.op, oper:r.oper, turno:r.turno, entradaISO:r.entradaISO, saidaISO:saida.toISOString(), durMin:netMin, parada:somaAtv, enviado:false });
+  atvs.forEach(a=>novos.push({ id:nextId(), dataISO:new Date(a.entradaISO).toISOString(), placa:r.placa, op:a.op, oper:r.oper, turno:r.turno, entradaISO:a.entradaISO, saidaISO:a.saidaISO, durMin:a.durMin, parada:0, enviado:false }));
   novos.forEach(n=>state.concluidos.push(n));
   state.emAndamento.splice(i,1); save(); render();
   novos.forEach(enviarPonte);
@@ -268,7 +268,7 @@ function enviarPonte(r){
   if(!FORM_ACTION) return;
   const d=new Date(r.dataISO);
   const linha=[r.id, `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`, r.turno, r.oper, r.placa, r.op,
-    hhmm(new Date(r.entradaISO)), hhmm(new Date(r.saidaISO)), Math.round(r.durMin)].join(";");
+    hhmm(new Date(r.entradaISO)), hhmm(new Date(r.saidaISO)), Math.round(r.durMin), Math.round(r.parada||0)].join(";");
   const body=ENTRY_FIELD+"="+encodeURIComponent(linha);
   fetch(FORM_ACTION,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body})
     .then(()=>marcarEnviado(r.id,true)).catch(()=>marcarEnviado(r.id,false));
