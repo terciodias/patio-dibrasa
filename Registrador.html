@@ -86,6 +86,10 @@
   .stat div{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;}
   .stat .n{font-size:1.4rem;font-weight:800;font-variant-numeric:tabular-nums;}
   .stat .l{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:650;}
+  .acomp-date{width:100%;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:1rem;font-family:inherit;color-scheme:dark;font-weight:700;margin-bottom:12px;}
+  .add-op{background:none;border:none;color:var(--accent-2);font-size:.8rem;font-weight:700;padding:7px 0 0;cursor:pointer;}
+  .stat.mes div{background:transparent;border-style:dashed;}
+  .stat.mes .n{color:var(--accent-2);}
 
   .actions{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
   .actions button,.actions .btn-drive{padding:14px;border-radius:12px;font-weight:700;font-size:.92rem;cursor:pointer;border:1px solid var(--line);text-align:center;text-decoration:none;display:block;}
@@ -123,7 +127,10 @@
       <div class="op-choices" id="opChoices"></div>
     </div>
     <div class="row2">
-      <div class="field"><label>Operador</label><select id="operador"></select></div>
+      <div class="field"><label>Operador</label><select id="operador"></select>
+        <button type="button" class="add-op" id="add2op">+ 2º operador</button>
+        <div id="oper2Wrap" style="display:none;margin-top:8px"><select id="operador2"></select></div>
+      </div>
       <div class="field"><label>Turno</label><select id="turno"></select></div>
     </div>
     <button class="btn-entrada" id="btnEntrada">▶  Registrar ENTRADA</button>
@@ -149,6 +156,16 @@
       </div>
     </div>
     <div class="hint">Cada <b>Saída</b> é enviada automaticamente para o sistema (☁✓). Os botões acima são <b>backup</b> — use só se ficar sem internet (aí aparece ↻ para reenviar).<br>Aparelho: <b id="devtag">—</b> — cada celular tem um código próprio para os registros não se misturarem.</div>
+  </div>
+
+  <div class="card">
+    <h2>Acompanhamento por data · deste aparelho</h2>
+    <input type="date" id="acompData" class="acomp-date">
+    <div class="stat" style="margin-bottom:0">
+      <div><div class="n" id="acDiaN">0</div><div class="l">Atend. no dia</div></div>
+      <div><div class="n" id="acDiaTma">—</div><div class="l">TMA do dia</div></div>
+    </div>
+    <div class="hint">Considera só os registros feitos <b>neste celular</b>. Para o TMA do pátio todo, use o painel no computador.</div>
   </div>
 </div>
 
@@ -195,31 +212,51 @@ const fmtDur = min => { min=Math.round(min); const h=Math.floor(min/60), m=min%6
 // estado: {emAndamento:[{key,placa,op,oper,turno,entradaISO}], concluidos:[{id,dataISO,placa,op,oper,turno,entradaISO,saidaISO,durMin}]}
 let state = load();
 let opSel = OPERACOES[2];
+let _hojeKey = null;   // controle de virada de data (meia-noite)
 
 function load(){
-  try{ const s=JSON.parse(store.get(LS_KEY)); if(s&&s.emAndamento&&s.concluidos) return s; }catch(e){}
+  try{ const s=JSON.parse(store.get(LS_KEY)); if(s&&s.emAndamento&&s.concluidos){
+    // poda de armazenamento: descarta enviados com mais de 92 dias (já estão na nuvem); mantém pendentes
+    const lim=Date.now()-92*864e5;
+    s.concluidos=s.concluidos.filter(r=>{ try{ return (r.enviado===false) || (new Date(r.dataISO).getTime()>=lim); }catch(e){ return true; } });
+    return s;
+  } }catch(e){}
   return {emAndamento:[], concluidos:[]};
 }
 function save(){ store.set(LS_KEY, JSON.stringify(state)); }
+function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function ehHoje(r){ try{ return ymd(new Date(r.dataISO))===ymd(new Date()); }catch(e){ return false; } }
+const MAIN_OPS=["Carregamento","Descarregamento","Descarregar e Carregar"];
+function ehPrincipal(r){ return MAIN_OPS.includes(r.op); }   // atividades ("outra atividade") não contam como atendimento
 function deviceCode(){ let c=store.get(LS_DEV); if(!c){ c=""; while(c.length<2) c+="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*32)]; store.set(LS_DEV,c); } return c; }
 function nextId(){ let n=parseInt(store.get(LS_ID)||"0",10)+1; store.set(LS_ID,String(n)); return deviceCode()+"-"+n; }
 
 function turnoPorHora(d){ const h=d.getHours()+d.getMinutes()/60; if(h>=7&&h<17)return "A"; if(h>=13&&h<21)return "B"; return "C"; }
 
 function fillSelect(sel, arr, extra, placeholder){ sel.innerHTML = (placeholder?`<option value="" disabled selected>${placeholder}</option>`:"") + arr.map(v=>`<option value="${v}">${v}</option>`).join("") + (extra||""); }
+function refillOperadores(){
+  const extra=`<option value="__outro__">+ Outro…</option>`;
+  const v1=$("operador").value, v2=$("operador2")?$("operador2").value:"";
+  fillSelect($("operador"), OPERADORES, extra, "— Selecione o operador —"); $("operador").value=v1;
+  if($("operador2")){ fillSelect($("operador2"), OPERADORES, extra, "— 2º operador (opcional) —"); $("operador2").value=v2; }
+}
 
 function initForm(){
   fillSelect($("placa"), PLACAS, `<option value="__nova__">+ Nova placa…</option>`, "— Selecione a placa —");
   fillSelect($("operador"), OPERADORES, `<option value="__outro__">+ Outro…</option>`, "— Selecione o operador —");
+  fillSelect($("operador2"), OPERADORES, `<option value="__outro__">+ Outro…</option>`, "— 2º operador (opcional) —");
   fillSelect($("turno"), TURNOS, "", "— Turno —");
   $("opChoices").innerHTML = OPERACOES.map(o=>`<button data-op="${o}">${o.replace("Descarregar e Carregar","Descarr. + Carreg.")}</button>`).join("");
   updateOpButtons();
   $("opChoices").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return; opSel=b.dataset.op; updateOpButtons(); });
   $("placa").addEventListener("change", e=>{ $("novaPlacaWrap").style.display = e.target.value==="__nova__"?"block":"none"; if(e.target.value==="__nova__") $("novaPlaca").focus(); });
-  $("operador").addEventListener("change", e=>{ if(e.target.value==="__outro__"){ const nome=prompt("Nome do operador:"); if(nome){ const o=nome.trim(); if(o && !OPERADORES.includes(o)) OPERADORES.push(o); fillSelect($("operador"),OPERADORES,`<option value="__outro__">+ Outro…</option>`, "— Selecione o operador —"); $("operador").value=o; } else e.target.value=""; } });
+  $("operador").addEventListener("change", e=>{ if(e.target.value==="__outro__"){ const nome=prompt("Nome do operador:"); if(nome){ const o=nome.trim(); if(o && !OPERADORES.includes(o)) OPERADORES.push(o); refillOperadores(); $("operador").value=o; } else e.target.value=""; } });
+  $("add2op").addEventListener("click", ()=>{ const w=$("oper2Wrap"), show=w.style.display==="none"; w.style.display=show?"block":"none"; $("add2op").textContent=show?"− remover 2º operador":"+ 2º operador"; if(!show) $("operador2").value=""; });
+  $("operador2").addEventListener("change", e=>{ if(e.target.value==="__outro__"){ const nome=prompt("Nome do 2º operador:"); if(nome){ const o=nome.trim(); if(o && !OPERADORES.includes(o)) OPERADORES.push(o); refillOperadores(); $("operador2").value=o; } else e.target.value=""; } });
   $("btnEntrada").addEventListener("click", registrarEntrada);
   $("btnExport").addEventListener("click", exportar);
   $("btnClear").addEventListener("click", limparDia);
+  { const ac=$("acompData"); if(ac){ ac.value=ymd(new Date()); ac.max=ymd(new Date()); ac.addEventListener("change", renderAcomp); } }
 }
 function updateOpButtons(){ document.querySelectorAll("#opChoices button").forEach(b=>b.classList.toggle("sel", b.dataset.op===opSel)); }
 
@@ -228,11 +265,15 @@ function registrarEntrada(){
   if(!placa){ toast("Escolha a placa"); $("placa").focus(); return; }
   if(placa==="__nova__"){ placa=$("novaPlaca").value.trim().toUpperCase(); if(!placa){ toast("Digite a placa"); $("novaPlaca").focus(); return; } if(!PLACAS.includes(placa)) PLACAS.splice(PLACAS.length-1,0,placa); }
   let oper=$("operador").value; if(!oper || oper==="__outro__"){ toast("Escolha o operador"); $("operador").focus(); return; }
+  const w2=$("oper2Wrap"); let oper2=(w2 && w2.style.display!=="none") ? $("operador2").value : "";
+  if(oper2==="__outro__") oper2="";
+  if(oper2 && oper2!==oper) oper = oper+" / "+oper2;   // dois operadores na mesma carreta
   const turno=$("turno").value; if(!turno){ toast("Escolha o turno"); $("turno").focus(); return; }
   const rec={ key:Date.now()+"_"+Math.random().toString(36).slice(2,6), placa, op:opSel, oper, turno, entradaISO:new Date().toISOString(), atividades:[], atividadeAtual:null };
   state.emAndamento.push(rec); save(); render();
-  // reset placa nova
+  // reset placa nova + 2º operador
   fillSelect($("placa"),PLACAS,`<option value="__nova__">+ Nova placa…</option>`, "— Selecione a placa —"); $("novaPlacaWrap").style.display="none";
+  if(w2){ w2.style.display="none"; $("operador2").value=""; $("add2op").textContent="+ 2º operador"; }
   toast("Entrada registrada: "+placa+" · "+hhmm(new Date()));
 }
 
@@ -294,7 +335,7 @@ function render(){
       </div>
     </div>`).join(""); }
   // concluidos
-  const cs=[...state.concluidos].sort((a,b)=>new Date(b.saidaISO)-new Date(a.saidaISO));
+  const cs=[...state.concluidos].filter(r=>ehHoje(r)&&ehPrincipal(r)).sort((a,b)=>new Date(b.saidaISO)-new Date(a.saidaISO));
   $("stCount").textContent=cs.length;
   $("stMedia").textContent = cs.length ? fmtDur(cs.reduce((s,r)=>s+r.durMin,0)/cs.length) : "—";
   const tw=$("tabelaWrap");
@@ -305,6 +346,17 @@ function render(){
       <td class="num">${hhmm(new Date(r.entradaISO))}</td><td class="num">${hhmm(new Date(r.saidaISO))}</td>
       <td class="num dur">${fmtDur(r.durMin)}</td>
       <td class="acts">${r.enviado?'<span class="env ok" title="enviado ao sistema">☁✓</span>':`<span class="env pend" title="pendente — toque para reenviar" onclick="reenviarUm('${r.id}')">↻</span>`}<button class="del" onclick="excluir('${r.id}')">✕</button></td></tr>`).join("")+`</tbody></table>`; }
+  renderAcomp();
+}
+
+// acompanhamento por data (só deste aparelho): TMA do dia selecionado
+function renderAcomp(){
+  const inp=$("acompData"); if(!inp) return;
+  if(!inp.value) inp.value=ymd(new Date());
+  const alvo=inp.value;                 // "AAAA-MM-DD"
+  const dia=state.concluidos.filter(r=>{ try{ return ehPrincipal(r) && ymd(new Date(r.dataISO))===alvo; }catch(e){ return false; } });
+  $("acDiaN").textContent=dia.length;
+  $("acDiaTma").textContent=dia.length? fmtDur(dia.reduce((s,r)=>s+r.durMin,0)/dia.length) : "—";
 }
 
 function tickTimers(){
@@ -316,9 +368,10 @@ function tickTimers(){
 }
 
 function exportar(){
-  if(!state.concluidos.length){ toast("Nada para exportar ainda"); return; }
+  const hoje=state.concluidos.filter(ehHoje);
+  if(!hoje.length){ toast("Nada para exportar hoje"); return; }
   const H=["ID","Data","Turno","Operador","Placa","Operação","Hora Entrada","Hora Saída","Duração (min)"];
-  const rows=state.concluidos.map(r=>{ const d=new Date(r.dataISO);
+  const rows=hoje.map(r=>{ const d=new Date(r.dataISO);
     return [r.id, `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`, r.turno, r.oper, r.placa, r.op,
             hhmm(new Date(r.entradaISO)), hhmm(new Date(r.saidaISO)), Math.round(r.durMin)]; });
   const esc=v=>{ v=String(v); return /[";\n]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; };
@@ -329,17 +382,24 @@ function exportar(){
   toast("Planilha exportada: "+nome);
 }
 
-function limparDia(){ if(!confirm("Apagar TODOS os registros de hoje deste aparelho? (exporte antes se precisar)"))return; state={emAndamento:[],concluidos:[]}; save(); render(); toast("Registros apagados"); }
+function limparDia(){ if(!confirm("Apagar os registros de HOJE deste aparelho?\n(já enviados ao sistema — exporte antes se precisar)"))return; state.concluidos=state.concluidos.filter(r=>!ehHoje(r)); save(); render(); toast("Registros de hoje apagados"); }
 
 let toastT;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2200); }
 
-function clock(){ const d=new Date(); $("clock").textContent=hhmm(d); $("today").textContent=d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}); $("turnoTag").textContent="Turno "+turnoPorHora(d); }
+function clock(){ const d=new Date(); $("clock").textContent=hhmm(d); $("today").textContent=d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}); $("turnoTag").textContent="Turno "+turnoPorHora(d);
+  // virou a data? zera a visão do dia (novo dia começa em branco)
+  const hk=ymd(d);
+  if(_hojeKey===null){ _hojeKey=hk; }
+  else if(hk!==_hojeKey){ const ac=$("acompData"); if(ac && ac.value===_hojeKey) ac.value=hk; if(ac) ac.max=hk; _hojeKey=hk; render(); }
+}
 
 window.registrarSaida=registrarSaida; window.excluir=excluir; window.reenviarUm=reenviarUm;
 window.abrirAtv=abrirAtv; window.fecharAtv=fecharAtv; window.escolherAtv=escolherAtv; window.encerrarAtividade=encerrarAtividade;
 initForm(); render(); clock(); tickTimers(); reenviarPendentes(); { const dt=$("devtag"); if(dt) dt.textContent=deviceCode(); }
 setInterval(tickTimers,1000); setInterval(clock,10000);
+// garante o dia atual no seletor mesmo quando o navegador restaura o valor antigo do campo ao recarregar
+window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.value=ymd(new Date()); ac.max=ymd(new Date()); renderAcomp(); } });
 </script>
 </body>
 </html>
