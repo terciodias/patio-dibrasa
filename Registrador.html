@@ -41,6 +41,16 @@
   .field{margin-bottom:13px;}
   select,input[type=text]{width:100%;font-size:1.05rem;padding:12px 12px;border-radius:11px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-family:var(--sans);appearance:none;}
   select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px;}
+  .combo{position:relative;}
+  .combo .lupa{position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none;opacity:.65;font-size:1rem;}
+  .combo-input{padding-left:40px !important;}
+  .combo-list{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:30;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;max-height:280px;overflow-y:auto;box-shadow:0 10px 28px rgba(0,0,0,.45);display:none;}
+  .combo.open .combo-list{display:block;}
+  .combo-item{padding:12px 15px;font-size:1.02rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--ink);}
+  .combo-item:last-child{border-bottom:none;}
+  .combo-item.hl,.combo-item:active{background:var(--panel);}
+  .combo-item.add{color:var(--accent-2);font-weight:700;}
+  .combo-empty{padding:12px 15px;color:var(--muted);font-size:.92rem;}
   .op-choices{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
   .op-choices button{padding:11px 6px;border-radius:11px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);font-weight:650;font-size:.82rem;cursor:pointer;line-height:1.15;}
   .op-choices button.sel{background:var(--accent);border-color:var(--accent);color:#04201f;}
@@ -116,11 +126,12 @@
     <h2>Novo atendimento</h2>
     <div class="field">
       <label>Placa / Veículo</label>
-      <select id="placa"></select>
-    </div>
-    <div class="field" id="novaPlacaWrap" style="display:none">
-      <label>Digite a nova placa</label>
-      <input type="text" id="novaPlaca" placeholder="AAA-0000" autocomplete="off">
+      <div class="combo" id="placaCombo">
+        <span class="lupa">🔍</span>
+        <input type="text" id="placaSearch" class="combo-input" placeholder="— Selecione ou pesquise —" autocomplete="off">
+        <input type="hidden" id="placa">
+        <div class="combo-list" id="placaList"></div>
+      </div>
     </div>
     <div class="field">
       <label>Operação</label>
@@ -242,15 +253,44 @@ function refillOperadores(){
   if($("operador2")){ fillSelect($("operador2"), OPERADORES, extra, "— 2º operador (opcional) —"); $("operador2").value=v2; }
 }
 
+// ---- combo de placa com busca (lupa) ----
+function placaAdd(p){ p=String(p||"").trim().toUpperCase(); if(!p) return ""; if(!PLACAS.includes(p)) PLACAS.splice(Math.max(0,PLACAS.length-1),0,p); return p; }
+function renderPlacaList(){
+  const q=($("placaSearch").value||"").trim().toUpperCase();
+  const arr = q ? PLACAS.filter(p=>p.toUpperCase().includes(q)) : PLACAS.slice();
+  let html = arr.map(p=>`<div class="combo-item" data-val="${p}">${p}</div>`).join("");
+  if(!arr.length) html += `<div class="combo-empty">Nenhuma placa encontrada</div>`;
+  const exata = arr.some(p=>p.toUpperCase()===q);
+  html += (q && !exata) ? `<div class="combo-item add" data-val="__add__">+ Adicionar “${q}”</div>`
+                        : `<div class="combo-item add" data-val="__nova__">+ Nova placa…</div>`;
+  $("placaList").innerHTML = html;
+}
+function abrirPlacaList(){ renderPlacaList(); $("placaCombo").classList.add("open"); }
+function fecharPlacaList(){ $("placaCombo").classList.remove("open"); }
+function resetPlaca(){ $("placa").value=""; $("placaSearch").value=""; fecharPlacaList(); }
+function escolherPlaca(val){
+  if(val==="__add__"){ const p=placaAdd($("placaSearch").value); if(!p) return; $("placa").value=p; $("placaSearch").value=p; }
+  else if(val==="__nova__"){ const p=placaAdd(prompt("Digite a nova placa:")); if(!p) return; $("placa").value=p; $("placaSearch").value=p; }
+  else { $("placa").value=val; $("placaSearch").value=val; }
+  fecharPlacaList();
+}
+function initPlacaCombo(){
+  const inp=$("placaSearch"), list=$("placaList"), combo=$("placaCombo");
+  inp.addEventListener("focus", abrirPlacaList);
+  inp.addEventListener("input", ()=>{ $("placa").value=""; abrirPlacaList(); });
+  inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const first=list.querySelector(".combo-item"); if(first) escolherPlaca(first.dataset.val); } else if(e.key==="Escape"){ fecharPlacaList(); } });
+  list.addEventListener("mousedown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolherPlaca(it.dataset.val); });
+  document.addEventListener("click", e=>{ if(!combo.contains(e.target)) fecharPlacaList(); });
+}
+
 function initForm(){
-  fillSelect($("placa"), PLACAS, `<option value="__nova__">+ Nova placa…</option>`, "— Selecione a placa —");
+  initPlacaCombo();
   fillSelect($("operador"), OPERADORES, `<option value="__outro__">+ Outro…</option>`, "— Selecione o operador —");
   fillSelect($("operador2"), OPERADORES, `<option value="__outro__">+ Outro…</option>`, "— 2º operador (opcional) —");
   fillSelect($("turno"), TURNOS, "", "— Turno —");
   $("opChoices").innerHTML = OPERACOES.map(o=>`<button data-op="${o}">${o.replace("Descarregar e Carregar","Descarr. + Carreg.")}</button>`).join("");
   updateOpButtons();
   $("opChoices").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return; opSel=b.dataset.op; updateOpButtons(); });
-  $("placa").addEventListener("change", e=>{ $("novaPlacaWrap").style.display = e.target.value==="__nova__"?"block":"none"; if(e.target.value==="__nova__") $("novaPlaca").focus(); });
   $("operador").addEventListener("change", e=>{ if(e.target.value==="__outro__"){ const nome=prompt("Nome do operador:"); if(nome){ const o=nome.trim(); if(o && !OPERADORES.includes(o)) OPERADORES.push(o); refillOperadores(); $("operador").value=o; } else e.target.value=""; } });
   $("add2op").addEventListener("click", ()=>{ const w=$("oper2Wrap"), show=w.style.display==="none"; w.style.display=show?"block":"none"; $("add2op").textContent=show?"− remover 2º operador":"+ 2º operador"; if(!show) $("operador2").value=""; });
   $("operador2").addEventListener("change", e=>{ if(e.target.value==="__outro__"){ const nome=prompt("Nome do 2º operador:"); if(nome){ const o=nome.trim(); if(o && !OPERADORES.includes(o)) OPERADORES.push(o); refillOperadores(); $("operador2").value=o; } else e.target.value=""; } });
@@ -262,9 +302,12 @@ function initForm(){
 function updateOpButtons(){ document.querySelectorAll("#opChoices button").forEach(b=>b.classList.toggle("sel", b.dataset.op===opSel)); }
 
 function registrarEntrada(){
-  let placa = $("placa").value;
-  if(!placa){ toast("Escolha a placa"); $("placa").focus(); return; }
-  if(placa==="__nova__"){ placa=$("novaPlaca").value.trim().toUpperCase(); if(!placa){ toast("Digite a placa"); $("novaPlaca").focus(); return; } if(!PLACAS.includes(placa)) PLACAS.splice(PLACAS.length-1,0,placa); }
+  let placa = ($("placa").value||"").trim();
+  if(!placa){                                   // digitou mas não tocou na lista: resolve pelo texto
+    const typed=($("placaSearch").value||"").trim();
+    if(typed){ const m=PLACAS.find(p=>p.toUpperCase()===typed.toUpperCase()); placa = m || placaAdd(typed); }
+  }
+  if(!placa){ toast("Escolha a placa"); $("placaSearch").focus(); return; }
   let oper=$("operador").value; if(!oper || oper==="__outro__"){ toast("Escolha o operador"); $("operador").focus(); return; }
   const w2=$("oper2Wrap"); let oper2=(w2 && w2.style.display!=="none") ? $("operador2").value : "";
   if(oper2==="__outro__") oper2="";
@@ -272,8 +315,8 @@ function registrarEntrada(){
   const turno=$("turno").value; if(!turno){ toast("Escolha o turno"); $("turno").focus(); return; }
   const rec={ key:Date.now()+"_"+Math.random().toString(36).slice(2,6), placa, op:opSel, oper, turno, entradaISO:new Date().toISOString(), atividades:[], atividadeAtual:null };
   state.emAndamento.push(rec); save(); render();
-  // reset placa nova + 2º operador
-  fillSelect($("placa"),PLACAS,`<option value="__nova__">+ Nova placa…</option>`, "— Selecione a placa —"); $("novaPlacaWrap").style.display="none";
+  // reset placa + 2º operador
+  resetPlaca();
   if(w2){ w2.style.display="none"; $("operador2").value=""; $("add2op").textContent="+ 2º operador"; }
   toast("Entrada registrada: "+placa+" · "+hhmm(new Date()));
 }
