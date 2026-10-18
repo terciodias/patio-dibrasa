@@ -77,6 +77,21 @@
   .atv-choices button{padding:15px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-weight:700;font-size:1rem;cursor:pointer;}
   .atv-choices button:active{background:var(--accent);color:#04201f;}
   .modal-cancel{margin-top:12px;width:100%;padding:12px;border:none;background:transparent;color:var(--ink-2);font-weight:700;cursor:pointer;}
+  .hcfg{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;width:40px;height:40px;border-radius:11px;font-size:1.25rem;line-height:1;cursor:pointer;}
+  .cfg-box{max-width:460px;max-height:86vh;overflow-y:auto;}
+  .cfg-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .cfg-head h3{margin:0;font-size:1.1rem;}
+  .cfg-x{background:none;border:none;color:var(--ink-2);font-size:1.3rem;cursor:pointer;}
+  .cfg-sec{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;}
+  .cfg-sec h4{margin:0 0 8px;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-2);}
+  .cfg-items{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
+  .cfg-item{display:inline-flex;align-items:center;gap:7px;background:var(--panel-2);border:1px solid var(--line);border-radius:99px;padding:5px 6px 5px 12px;font-size:.88rem;}
+  .cfg-item button{background:none;border:none;color:var(--saida);font-size:.95rem;cursor:pointer;line-height:1;padding:0 2px;}
+  .cfg-empty{color:var(--muted);font-size:.82rem;padding:2px 0 4px;}
+  .cfg-add{display:flex;gap:8px;}
+  .cfg-add input{flex:1;font-size:.95rem;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);}
+  .cfg-add button{width:46px;border:none;border-radius:10px;background:var(--accent);color:#04201f;font-size:1.3rem;font-weight:800;cursor:pointer;}
+  .cfg-done{margin-top:16px;width:100%;padding:13px;border:none;border-radius:12px;background:var(--brand);color:#fff;font-weight:800;font-size:1rem;cursor:pointer;}
   .btn-saida:active{transform:translateY(2px);box-shadow:0 1px 0 var(--saida-d);}
   .empty{color:var(--muted);font-size:.85rem;text-align:center;padding:14px 0;}
 
@@ -98,6 +113,19 @@
   .stat .l{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:650;}
   .acomp-date{width:100%;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:1rem;font-family:inherit;color-scheme:dark;font-weight:700;margin-bottom:12px;}
   .add-op{background:none;border:none;color:var(--accent-2);font-size:.8rem;font-weight:700;padding:7px 0 0;cursor:pointer;}
+  .tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;}
+  .tab-btn{padding:12px 6px;border:none;border-radius:10px;background:transparent;color:var(--ink-2);font-weight:800;font-size:.95rem;cursor:pointer;}
+  .tab-btn.sel{background:var(--brand);color:#fff;}
+  .tipo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .tipo button{padding:14px 6px;border-radius:12px;border:2px solid var(--line);background:var(--panel-2);color:var(--ink-2);font-weight:800;font-size:1rem;cursor:pointer;}
+  .tipo button.sel.e{background:var(--entrada);border-color:var(--entrada);color:#fff;}
+  .tipo button.sel.s{background:var(--saida);border-color:var(--saida);color:#fff;}
+  .auto-note{font-size:.8rem;color:var(--muted);margin:2px 0 12px;}
+  .btn-reg{width:100%;padding:16px;border:none;border-radius:14px;background:var(--entrada);color:#fff;font-size:1.1rem;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(30,158,90,.3);}
+  .btn-reg.s{background:var(--saida);box-shadow:0 6px 16px rgba(194,67,56,.3);}
+  .tag{display:inline-block;font-size:.68rem;font-weight:800;padding:1px 7px;border-radius:99px;}
+  .tag.e{background:rgba(30,158,90,.2);color:#6FE0A0;}
+  .tag.s{background:rgba(194,67,56,.2);color:#F0A097;}
   .stat.mes div{background:transparent;border-style:dashed;}
   .stat.mes .n{color:var(--accent-2);}
 
@@ -115,13 +143,22 @@
 <body>
 <header>
   <div class="hbar">
-    <div class="logo"><div class="mk">DB</div><div><b>Registrador de TMA</b><span>DIBRASA</span></div></div>
-    <div class="now"><div class="t" id="clock">--:--</div><div class="d" id="today">—</div><span class="turno-tag" id="turnoTag">—</span></div>
+    <div class="logo"><div class="mk">DB</div><div><b>Portaria &amp; Pátio</b><span>DIBRASA</span></div></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button id="btnCfg" class="hcfg" title="Configuração" aria-label="Configuração">⚙</button>
+      <div class="now"><div class="t" id="clock">--:--</div><div class="d" id="today">—</div><span class="turno-tag" id="turnoTag">—</span></div>
+    </div>
   </div>
 </header>
 
 <div class="wrap">
 
+  <div class="tabs" id="tabs">
+    <button type="button" class="tab-btn sel" data-tab="portaria">🚪 Portaria</button>
+    <button type="button" class="tab-btn" data-tab="patio">🏭 Pátio</button>
+  </div>
+
+  <div id="view-patio">
   <div class="card">
     <h2>Novo atendimento</h2>
     <div class="field">
@@ -138,9 +175,20 @@
       <div class="op-choices" id="opChoices"></div>
     </div>
     <div class="row2">
-      <div class="field"><label>Operador</label><select id="operador"></select>
+      <div class="field"><label>Operador</label>
+        <div class="combo" id="operadorCombo"><span class="lupa">🔍</span>
+          <input type="text" id="operadorSearch" class="combo-input" placeholder="— Selecione ou pesquise —" autocomplete="off">
+          <input type="hidden" id="operador">
+          <div class="combo-list" id="operadorList"></div>
+        </div>
         <button type="button" class="add-op" id="add2op">+ 2º operador</button>
-        <div id="oper2Wrap" style="display:none;margin-top:8px"><select id="operador2"></select></div>
+        <div id="oper2Wrap" style="display:none;margin-top:8px">
+          <div class="combo" id="operador2Combo"><span class="lupa">🔍</span>
+            <input type="text" id="operador2Search" class="combo-input" placeholder="— 2º operador —" autocomplete="off">
+            <input type="hidden" id="operador2">
+            <div class="combo-list" id="operador2List"></div>
+          </div>
+        </div>
       </div>
       <div class="field"><label>Turno</label><select id="turno"></select></div>
     </div>
@@ -178,6 +226,43 @@
     </div>
     <div class="hint">Considera só os registros feitos <b>neste celular</b>. Para o TMA do pátio todo, use o painel no computador.</div>
   </div>
+  </div><!--/view-patio-->
+
+  <div id="view-portaria" hidden>
+    <div class="card">
+      <h2>Novo registro de portaria</h2>
+      <div class="tipo" id="pTipoSel">
+        <button type="button" class="e sel" data-tipo="E">▶ ENTRADA</button>
+        <button type="button" class="s" data-tipo="S">■ SAÍDA</button>
+      </div>
+      <div class="field"><label>Nota Fiscal (NF)</label><input type="text" id="pNf" inputmode="numeric" autocomplete="off" placeholder="Número da NF"></div>
+      <div class="field"><label>Fábrica</label><input type="text" id="pFabrica" list="pDlFabrica" autocomplete="off" placeholder="Fábrica de origem"><datalist id="pDlFabrica"></datalist></div>
+      <div class="field"><label>Placa</label><input type="text" id="pPlaca" list="pDlPlaca" autocomplete="off" placeholder="AAA-0000" style="text-transform:uppercase"><datalist id="pDlPlaca"></datalist></div>
+      <div class="field"><label>Motorista</label><input type="text" id="pMotorista" list="pDlMotorista" autocomplete="off" placeholder="Nome do motorista"><datalist id="pDlMotorista"></datalist></div>
+      <div class="row2">
+        <div class="field"><label>KM</label><input type="text" id="pKm" inputmode="numeric" autocomplete="off" placeholder="Hodômetro"></div>
+        <div class="field" id="pLacreWrap"><label>N° do lacre</label><input type="text" id="pLacre" autocomplete="off" placeholder="Lacre (saída)"></div>
+      </div>
+      <div class="auto-note">📅 <b>Data e hora</b> são preenchidas automaticamente ao registrar.</div>
+      <button class="btn-reg" id="pBtnReg">▶ Registrar ENTRADA</button>
+    </div>
+    <div class="card">
+      <h2>Registros de portaria · hoje</h2>
+      <div class="stat">
+        <div><div class="n" id="pStEnt">0</div><div class="l">Entradas</div></div>
+        <div><div class="n" id="pStSai">0</div><div class="l">Saídas</div></div>
+      </div>
+      <div id="pTabelaWrap"><div class="empty">Nenhum registro hoje.</div></div>
+      <div class="actions">
+        <button class="btn-export" id="pBtnExport">⬇  Exportar planilha</button>
+        <div class="actions-row">
+          <a class="btn-drive" href="https://drive.google.com/drive/folders/1z9vmav7GO5AQ0-VgOy8AvTmavS1WUqeK" target="_blank" rel="noopener">📁 Pasta do Drive</a>
+          <button class="btn-clear" id="pBtnClear">Limpar dia</button>
+        </div>
+      </div>
+      <div class="hint">Cada registro é enviado automaticamente para o sistema (☁✓). Exportar é só backup.</div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -197,10 +282,22 @@
   </div>
 </div>
 
+<div id="cfgModal" class="modal" style="display:none">
+  <div class="modal-box cfg-box">
+    <div class="cfg-head"><h3>⚙ Configuração</h3><button class="cfg-x" onclick="fecharCfg()" aria-label="Fechar">✕</button></div>
+    <p style="margin:0 0 4px;color:var(--muted);font-size:.82rem">Cadastre as opções usadas no Pátio e na Portaria. Salva neste aparelho.</p>
+    <div class="cfg-sec"><h4>Placas</h4><div class="cfg-items" id="cfgPlacas"></div><div class="cfg-add"><input type="text" id="cfgPlacaInp" placeholder="Nova placa" style="text-transform:uppercase"><button type="button" onclick="cfgAdd('placas')">+</button></div></div>
+    <div class="cfg-sec"><h4>Operadores</h4><div class="cfg-items" id="cfgOper"></div><div class="cfg-add"><input type="text" id="cfgOperInp" placeholder="Novo operador"><button type="button" onclick="cfgAdd('operadores')">+</button></div></div>
+    <div class="cfg-sec"><h4>Fábricas</h4><div class="cfg-items" id="cfgFab"></div><div class="cfg-add"><input type="text" id="cfgFabInp" placeholder="Nova fábrica"><button type="button" onclick="cfgAdd('fabricas')">+</button></div></div>
+    <div class="cfg-sec"><h4>Motoristas</h4><div class="cfg-items" id="cfgMot"></div><div class="cfg-add"><input type="text" id="cfgMotInp" placeholder="Novo motorista"><button type="button" onclick="cfgAdd('motoristas')">+</button></div></div>
+    <button class="cfg-done" onclick="fecharCfg()">Concluído</button>
+  </div>
+</div>
+
 <script>
 "use strict";
-const PLACAS = ["PQW-3J17","SMQ-8E34","UJM-9A67","ROA-9H51","ROJ-8A15","ROX-8A70","SNC-7C72","PSS-7576","ROX-5A86","PSX-9112","NNB-9842","NXC-2740","ROA-9H59","FRETE"];
-const OPERADORES = ["Alessando","Nayon","Zequias"];
+const PLACAS_DEFAULT = ["PQW-3J17","SMQ-8E34","UJM-9A67","ROA-9H51","ROJ-8A15","ROX-8A70","SNC-7C72","PSS-7576","ROX-5A86","PSX-9112","NNB-9842","NXC-2740","ROA-9H59","FRETE"];
+const OPERADORES_DEFAULT = ["Alessando","Nayon","Zequias"];
 const OPERACOES = ["Carregamento","Descarregamento","Descarregar e Carregar"];
 const TURNOS = ["A","B","C"];
 const LS_KEY = "dibrasa_registros_v1";
@@ -218,6 +315,12 @@ const store = {
 
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2,"0");
+
+// ---- listas configuráveis (persistidas) ----
+const CFG_PLACAS="dibrasa_cfg_placas_v1", CFG_OPER="dibrasa_cfg_oper_v1", CFG_FAB="dibrasa_cfg_fab_v1", CFG_MOT="dibrasa_cfg_mot_v1";
+function cfgGet(k,def){ try{ const a=JSON.parse(store.get(k)); return Array.isArray(a)?a:def.slice(); }catch(e){ return def.slice(); } }
+let PLACAS=cfgGet(CFG_PLACAS,PLACAS_DEFAULT), OPERADORES=cfgGet(CFG_OPER,OPERADORES_DEFAULT), FABRICAS=cfgGet(CFG_FAB,[]), MOTORISTAS=cfgGet(CFG_MOT,[]);
+function cfgSave(){ store.set(CFG_PLACAS,JSON.stringify(PLACAS)); store.set(CFG_OPER,JSON.stringify(OPERADORES)); store.set(CFG_FAB,JSON.stringify(FABRICAS)); store.set(CFG_MOT,JSON.stringify(MOTORISTAS)); }
 const hhmm = d => pad(d.getHours())+":"+pad(d.getMinutes());
 const fmtDur = min => { min=Math.round(min); const h=Math.floor(min/60), m=min%60; return h? `${h}h${pad(m)}` : `${m} min`; };
 
@@ -254,7 +357,7 @@ function refillOperadores(){
 }
 
 // ---- combo de placa com busca (lupa) ----
-function placaAdd(p){ p=String(p||"").trim().toUpperCase(); if(!p) return ""; if(!PLACAS.includes(p)) PLACAS.splice(Math.max(0,PLACAS.length-1),0,p); return p; }
+function placaAdd(p){ p=String(p||"").trim().toUpperCase(); if(!p) return ""; if(!PLACAS.includes(p)){ PLACAS.splice(Math.max(0,PLACAS.length-1),0,p); cfgSave(); } return p; }
 function renderPlacaList(){
   const q=($("placaSearch").value||"").trim().toUpperCase();
   const arr = q ? PLACAS.filter(p=>p.toUpperCase().includes(q)) : PLACAS.slice();
@@ -283,17 +386,48 @@ function initPlacaCombo(){
   document.addEventListener("click", e=>{ if(!combo.contains(e.target)) fecharPlacaList(); });
 }
 
+// combo genérico com busca (operador, 2º operador…)
+function criarCombo(id, getItems){
+  const combo=$(id+"Combo"), inp=$(id+"Search"), list=$(id+"List"), hid=$(id);
+  function render(){
+    const q=(inp.value||"").trim().toUpperCase();
+    const arr=getItems().filter(v=>!q||v.toUpperCase().includes(q));
+    let html=arr.map(v=>`<div class="combo-item" data-val="${v}">${v}</div>`).join("");
+    if(!arr.length) html+=`<div class="combo-empty">Nada encontrado</div>`;
+    const exata=arr.some(v=>v.toUpperCase()===q);
+    html+=(q&&!exata)?`<div class="combo-item add" data-val="__add__">+ Adicionar “${inp.value.trim()}”</div>`
+                     :`<div class="combo-item add" data-val="__novo__">+ Outro…</div>`;
+    list.innerHTML=html;
+  }
+  function abrir(){ render(); combo.classList.add("open"); }
+  function fechar(){ combo.classList.remove("open"); }
+  function escolher(val){
+    if(val==="__add__"||val==="__novo__"){
+      let nome = val==="__add__" ? inp.value.trim() : (prompt("Nome do operador:")||"").trim();
+      if(!nome) return;
+      if(!OPERADORES.includes(nome)){ OPERADORES.push(nome); cfgSave(); }
+      hid.value=nome; inp.value=nome;
+    } else { hid.value=val; inp.value=val; }
+    fechar();
+  }
+  inp.addEventListener("focus", abrir);
+  inp.addEventListener("input", ()=>{ hid.value=""; abrir(); });
+  inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const f=list.querySelector(".combo-item"); if(f) escolher(f.dataset.val); } else if(e.key==="Escape") fechar(); });
+  list.addEventListener("mousedown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolher(it.dataset.val); });
+  document.addEventListener("click", e=>{ if(!combo.contains(e.target)) fechar(); });
+  return { reset(){ hid.value=""; inp.value=""; fechar(); } };
+}
+let _comboOper, _comboOper2;
+
 function initForm(){
   initPlacaCombo();
-  fillSelect($("operador"), OPERADORES, `<option value="__outro__">+ Outro…</option>`, "— Selecione o operador —");
-  fillSelect($("operador2"), OPERADORES, `<option value="__outro__">+ Outro…</option>`, "— 2º operador (opcional) —");
+  _comboOper  = criarCombo("operador",  ()=>OPERADORES);
+  _comboOper2 = criarCombo("operador2", ()=>OPERADORES);
   fillSelect($("turno"), TURNOS, "", "— Turno —");
   $("opChoices").innerHTML = OPERACOES.map(o=>`<button data-op="${o}">${o.replace("Descarregar e Carregar","Descarr. + Carreg.")}</button>`).join("");
   updateOpButtons();
   $("opChoices").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return; opSel=b.dataset.op; updateOpButtons(); });
-  $("operador").addEventListener("change", e=>{ if(e.target.value==="__outro__"){ const nome=prompt("Nome do operador:"); if(nome){ const o=nome.trim(); if(o && !OPERADORES.includes(o)) OPERADORES.push(o); refillOperadores(); $("operador").value=o; } else e.target.value=""; } });
-  $("add2op").addEventListener("click", ()=>{ const w=$("oper2Wrap"), show=w.style.display==="none"; w.style.display=show?"block":"none"; $("add2op").textContent=show?"− remover 2º operador":"+ 2º operador"; if(!show) $("operador2").value=""; });
-  $("operador2").addEventListener("change", e=>{ if(e.target.value==="__outro__"){ const nome=prompt("Nome do 2º operador:"); if(nome){ const o=nome.trim(); if(o && !OPERADORES.includes(o)) OPERADORES.push(o); refillOperadores(); $("operador2").value=o; } else e.target.value=""; } });
+  $("add2op").addEventListener("click", ()=>{ const w=$("oper2Wrap"), show=w.style.display==="none"; w.style.display=show?"block":"none"; $("add2op").textContent=show?"− remover 2º operador":"+ 2º operador"; if(!show && _comboOper2) _comboOper2.reset(); });
   $("btnEntrada").addEventListener("click", registrarEntrada);
   $("btnExport").addEventListener("click", exportar);
   $("btnClear").addEventListener("click", limparDia);
@@ -308,16 +442,18 @@ function registrarEntrada(){
     if(typed){ const m=PLACAS.find(p=>p.toUpperCase()===typed.toUpperCase()); placa = m || placaAdd(typed); }
   }
   if(!placa){ toast("Escolha a placa"); $("placaSearch").focus(); return; }
-  let oper=$("operador").value; if(!oper || oper==="__outro__"){ toast("Escolha o operador"); $("operador").focus(); return; }
-  const w2=$("oper2Wrap"); let oper2=(w2 && w2.style.display!=="none") ? $("operador2").value : "";
-  if(oper2==="__outro__") oper2="";
+  let oper=($("operador").value||"").trim();
+  if(!oper){ const t=($("operadorSearch").value||"").trim(); if(t){ const m=OPERADORES.find(o=>o.toUpperCase()===t.toUpperCase()); oper=m||t; if(!OPERADORES.includes(oper)) OPERADORES.push(oper); } }
+  if(!oper){ toast("Escolha o operador"); $("operadorSearch").focus(); return; }
+  const w2=$("oper2Wrap"); let oper2="";
+  if(w2 && w2.style.display!=="none"){ oper2=($("operador2").value||"").trim(); if(!oper2){ const t=($("operador2Search").value||"").trim(); if(t){ oper2=t; if(!OPERADORES.includes(oper2)) OPERADORES.push(oper2); } } }
   if(oper2 && oper2!==oper) oper = oper+" / "+oper2;   // dois operadores na mesma carreta
   const turno=$("turno").value; if(!turno){ toast("Escolha o turno"); $("turno").focus(); return; }
   const rec={ key:Date.now()+"_"+Math.random().toString(36).slice(2,6), placa, op:opSel, oper, turno, entradaISO:new Date().toISOString(), atividades:[], atividadeAtual:null };
   state.emAndamento.push(rec); save(); render();
   // reset placa + 2º operador
   resetPlaca();
-  if(w2){ w2.style.display="none"; $("operador2").value=""; $("add2op").textContent="+ 2º operador"; }
+  if(w2){ w2.style.display="none"; if(_comboOper2) _comboOper2.reset(); $("add2op").textContent="+ 2º operador"; }
   toast("Entrada registrada: "+placa+" · "+hhmm(new Date()));
 }
 
@@ -444,6 +580,63 @@ initForm(); render(); clock(); tickTimers(); reenviarPendentes(); { const dt=$("
 setInterval(tickTimers,1000); setInterval(clock,10000);
 // garante o dia atual no seletor mesmo quando o navegador restaura o valor antigo do campo ao recarregar
 window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.value=ymd(new Date()); ac.max=ymd(new Date()); renderAcomp(); } });
+
+// ===================== PORTARIA (aba) =====================
+(function(){
+  const P_KEY="dibrasa_portaria_v1", P_ID="dibrasa_portaria_id_v1",
+        P_FAB="dibrasa_portaria_fab_v1", P_MOT="dibrasa_portaria_mot_v1", P_PLX="dibrasa_portaria_plx_v1";
+  let pstate=pload(), ptipo="E";
+  function pload(){ try{ const s=JSON.parse(store.get(P_KEY)); if(s&&Array.isArray(s.registros)){ const lim=Date.now()-92*864e5; s.registros=s.registros.filter(r=>{try{return (r.enviado===false)||(new Date(r.dataISO).getTime()>=lim);}catch(e){return true;}}); return s; } }catch(e){} return {registros:[]}; }
+  function psave(){ store.set(P_KEY, JSON.stringify(pstate)); }
+  function pNextId(){ let n=parseInt(store.get(P_ID)||"0",10)+1; store.set(P_ID,String(n)); return "P"+deviceCode()+"-"+n; }
+  function pHoje(r){ try{ return ymd(new Date(r.dataISO))===ymd(new Date()); }catch(e){ return false; } }
+  function pLem(k){ try{ return JSON.parse(store.get(k))||[]; }catch(e){ return []; } }
+  function pLembrar(k,v){ v=(v||"").trim(); if(!v)return; let a=pLem(k); if(!a.includes(v)){ a.push(v); store.set(k,JSON.stringify(a.slice(-80))); } }
+  function pDatalists(){ $("pDlPlaca").innerHTML=PLACAS.map(p=>`<option value="${p}">`).join(""); $("pDlFabrica").innerHTML=FABRICAS.map(p=>`<option value="${p}">`).join(""); $("pDlMotorista").innerHTML=MOTORISTAS.map(p=>`<option value="${p}">`).join(""); }
+  window._pDatalists=pDatalists;
+  function pSetTipo(t){ ptipo=t; document.querySelectorAll("#pTipoSel button").forEach(b=>b.classList.toggle("sel", b.dataset.tipo===t)); $("pLacreWrap").style.display=(t==="S")?"":"none"; $("pBtnReg").textContent=(t==="E")?"▶ Registrar ENTRADA":"■ Registrar SAÍDA"; $("pBtnReg").classList.toggle("s", t==="S"); }
+  function pEnviar(r){ if(!FORM_ACTION)return; const d=new Date(r.dataISO); const data=pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); const linha=["PORT",r.tipo,r.id,data,hhmm(d),r.nf,r.fabrica,r.placa,r.motorista,r.km,r.lacre].join(";"); const body=ENTRY_FIELD+"="+encodeURIComponent(linha); fetch(FORM_ACTION,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body}).then(()=>{r.enviado=true;psave();pRender();}).catch(()=>{}); }
+  function pRegistrar(){ const nf=$("pNf").value.trim(), placa=$("pPlaca").value.trim().toUpperCase(); if(!placa){toast("Informe a placa");$("pPlaca").focus();return;} if(!nf){toast("Informe a NF");$("pNf").focus();return;} const fabrica=$("pFabrica").value.trim(), motorista=$("pMotorista").value.trim(), km=$("pKm").value.trim(), lacre=(ptipo==="S")?$("pLacre").value.trim():""; const rec={id:pNextId(),tipo:ptipo,dataISO:new Date().toISOString(),nf,fabrica,placa,motorista,km,lacre,enviado:false}; pstate.registros.push(rec); psave(); let mudou=false; if(fabrica&&!FABRICAS.includes(fabrica)){FABRICAS.push(fabrica);mudou=true;} if(motorista&&!MOTORISTAS.includes(motorista)){MOTORISTAS.push(motorista);mudou=true;} if(placa&&!PLACAS.includes(placa)){PLACAS.push(placa);mudou=true;} if(mudou)cfgSave(); pEnviar(rec); ["pNf","pFabrica","pPlaca","pMotorista","pKm","pLacre"].forEach(id=>$(id).value=""); pDatalists(); pRender(); toast((ptipo==="E"?"Entrada":"Saída")+" registrada · "+placa+" · "+hhmm(new Date())); }
+  window.pExcluir=function(id){ if(!confirm("Excluir este registro?"))return; pstate.registros=pstate.registros.filter(r=>r.id!==id); psave(); pRender(); };
+  window.pReenviar=function(id){ const r=pstate.registros.find(x=>x.id===id); if(r)pEnviar(r); };
+  function pLimpar(){ if(!confirm("Apagar os registros de HOJE da portaria?\n(já enviados — exporte antes se precisar)"))return; pstate.registros=pstate.registros.filter(r=>!pHoje(r)); psave(); pRender(); toast("Portaria: registros de hoje apagados"); }
+  function pRender(){ const hoje=pstate.registros.filter(pHoje).sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO)); $("pStEnt").textContent=hoje.filter(r=>r.tipo==="E").length; $("pStSai").textContent=hoje.filter(r=>r.tipo==="S").length; const tw=$("pTabelaWrap"); if(!hoje.length){tw.innerHTML=`<div class="empty">Nenhum registro hoje.</div>`;return;} tw.innerHTML=`<table><thead><tr><th>Hora</th><th>Tipo</th><th>Placa / NF</th><th>Motorista</th><th></th></tr></thead><tbody>`+hoje.map(r=>{const d=new Date(r.dataISO);return `<tr><td>${hhmm(d)}</td><td><span class="tag ${r.tipo==='E'?'e':'s'}">${r.tipo==='E'?'ENT':'SAÍ'}</span></td><td><b>${r.placa}</b><br><span style="color:var(--muted);font-size:.72rem">NF ${r.nf||'—'}${r.fabrica?' · '+r.fabrica:''}${r.lacre?' · lacre '+r.lacre:''}${r.km?' · '+r.km+' km':''}</span></td><td>${r.motorista||'—'}</td><td style="text-align:right;white-space:nowrap">${r.enviado?'<span class="env ok" title="enviado">☁✓</span>':`<span class="env pend" title="pendente — tocar p/ reenviar" onclick="pReenviar('${r.id}')">↻</span>`}<button class="del" onclick="pExcluir('${r.id}')">✕</button></td></tr>`;}).join("")+`</tbody></table>`; }
+  function pExportar(){ const hoje=pstate.registros.filter(pHoje); if(!hoje.length){toast("Nada para exportar hoje");return;} const H=["ID","Tipo","Data","Hora","NF","Fábrica","Placa","Motorista","KM","Lacre"]; const rows=hoje.map(r=>{const d=new Date(r.dataISO);return [r.id,(r.tipo==="E"?"Entrada":"Saída"),`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`,hhmm(d),r.nf,r.fabrica,r.placa,r.motorista,r.km,r.lacre];}); const esc=v=>{v=String(v==null?"":v);return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}; const csv="﻿"+[H,...rows].map(r=>r.map(esc).join(";")).join("\r\n"); const d=new Date(); const nome=`portaria_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${deviceCode()}.csv`; const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=nome; document.body.appendChild(a); a.click(); a.remove(); toast("Portaria exportada: "+nome); }
+  document.querySelectorAll("#pTipoSel button").forEach(b=>b.addEventListener("click",()=>pSetTipo(b.dataset.tipo)));
+  $("pBtnReg").addEventListener("click",pRegistrar); $("pBtnExport").addEventListener("click",pExportar); $("pBtnClear").addEventListener("click",pLimpar);
+  pSetTipo("E"); pDatalists(); pRender(); pstate.registros.filter(r=>!r.enviado).forEach(pEnviar);
+  window._portRender=pRender;
+})();
+
+// ===================== ABAS (Pátio / Portaria) =====================
+(function(){
+  const LS_TAB="dibrasa_tab_v1";
+  function showTab(t){
+    const vp=$("view-patio"), vo=$("view-portaria"); if(!vp||!vo) return;
+    vp.hidden=(t!=="patio"); vo.hidden=(t!=="portaria");
+    document.querySelectorAll("#tabs .tab-btn").forEach(b=>b.classList.toggle("sel", b.dataset.tab===t));
+    try{ store.set(LS_TAB,t); }catch(e){}
+    if(t==="portaria" && window._portRender) window._portRender();
+  }
+  document.querySelectorAll("#tabs .tab-btn").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+  let saved="portaria"; try{ saved=store.get(LS_TAB)||"portaria"; }catch(e){}
+  showTab(saved);
+})();
+
+// ===================== CONFIGURAÇÃO (⚙) =====================
+(function(){
+  const SEC={ placas:{el:"cfgPlacas",inp:"cfgPlacaInp",up:true}, operadores:{el:"cfgOper",inp:"cfgOperInp"},
+              fabricas:{el:"cfgFab",inp:"cfgFabInp"}, motoristas:{el:"cfgMot",inp:"cfgMotInp"} };
+  function arrOf(n){ return n==="placas"?PLACAS : n==="operadores"?OPERADORES : n==="fabricas"?FABRICAS : MOTORISTAS; }
+  function renderSec(n){ const arr=arrOf(n), el=$(SEC[n].el); if(!el) return; el.innerHTML = arr.length ? arr.map((v,i)=>`<span class="cfg-item">${v}<button type="button" onclick="cfgRemove('${n}',${i})" aria-label="Remover">✕</button></span>`).join("") : '<div class="cfg-empty">Nenhum cadastrado</div>'; }
+  function renderAll(){ Object.keys(SEC).forEach(renderSec); }
+  function atualizarFontes(){ if(window._pDatalists) window._pDatalists(); }
+  window.cfgAdd=function(n){ const inp=$(SEC[n].inp); let v=(inp.value||"").trim(); if(SEC[n].up) v=v.toUpperCase(); if(!v) return; const arr=arrOf(n); if(!arr.includes(v)) arr.push(v); cfgSave(); inp.value=""; renderSec(n); atualizarFontes(); };
+  window.cfgRemove=function(n,i){ const arr=arrOf(n); arr.splice(i,1); cfgSave(); renderSec(n); atualizarFontes(); };
+  window.fecharCfg=function(){ const m=$("cfgModal"); if(m) m.style.display="none"; };
+  const b=$("btnCfg"); if(b) b.addEventListener("click",()=>{ renderAll(); $("cfgModal").style.display="flex"; });
+  Object.keys(SEC).forEach(n=>{ const inp=$(SEC[n].inp); if(inp) inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); window.cfgAdd(n); } }); });
+})();
 </script>
 </body>
 </html>
