@@ -207,14 +207,6 @@
       <div><div class="n" id="stMedia">—</div><div class="l">TMA do dia</div></div>
     </div>
     <div id="tabelaWrap"><div class="empty">Nenhum atendimento concluído ainda.</div></div>
-    <div class="actions">
-      <button class="btn-export" id="btnExport">⬇  Exportar planilha</button>
-      <div class="actions-row">
-        <a class="btn-drive" href="https://drive.google.com/drive/folders/1z9vmav7GO5AQ0-VgOy8AvTmavS1WUqeK" target="_blank" rel="noopener">📁 Abrir pasta do Drive</a>
-        <button class="btn-clear" id="btnClear">Limpar dia</button>
-      </div>
-    </div>
-    <div class="hint">Cada <b>Saída</b> é enviada automaticamente para o sistema (☁✓). Os botões acima são <b>backup</b> — use só se ficar sem internet (aí aparece ↻ para reenviar).<br>Aparelho: <b id="devtag">—</b> — cada celular tem um código próprio para os registros não se misturarem.</div>
   </div>
 
   <div class="card">
@@ -253,14 +245,6 @@
         <div><div class="n" id="pStSai">0</div><div class="l">Saídas</div></div>
       </div>
       <div id="pTabelaWrap"><div class="empty">Nenhum registro hoje.</div></div>
-      <div class="actions">
-        <button class="btn-export" id="pBtnExport">⬇  Exportar planilha</button>
-        <div class="actions-row">
-          <a class="btn-drive" href="https://drive.google.com/drive/folders/1z9vmav7GO5AQ0-VgOy8AvTmavS1WUqeK" target="_blank" rel="noopener">📁 Pasta do Drive</a>
-          <button class="btn-clear" id="pBtnClear">Limpar dia</button>
-        </div>
-      </div>
-      <div class="hint">Cada registro é enviado automaticamente para o sistema (☁✓). Exportar é só backup.</div>
     </div>
   </div>
 </div>
@@ -429,8 +413,7 @@ function initForm(){
   $("opChoices").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return; opSel=b.dataset.op; updateOpButtons(); });
   $("add2op").addEventListener("click", ()=>{ const w=$("oper2Wrap"), show=w.style.display==="none"; w.style.display=show?"block":"none"; $("add2op").textContent=show?"− remover 2º operador":"+ 2º operador"; if(!show && _comboOper2) _comboOper2.reset(); });
   $("btnEntrada").addEventListener("click", registrarEntrada);
-  $("btnExport").addEventListener("click", exportar);
-  $("btnClear").addEventListener("click", limparDia);
+  { const be=$("btnExport"); if(be) be.addEventListener("click", exportar); const bc=$("btnClear"); if(bc) bc.addEventListener("click", limparDia); }
   { const ac=$("acompData"); if(ac){ ac.value=ymd(new Date()); ac.max=ymd(new Date()); ac.addEventListener("change", renderAcomp); } }
 }
 function updateOpButtons(){ document.querySelectorAll("#opChoices button").forEach(b=>b.classList.toggle("sel", b.dataset.op===opSel)); }
@@ -603,7 +586,8 @@ window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.va
   function pRender(){ const hoje=pstate.registros.filter(pHoje).sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO)); $("pStEnt").textContent=hoje.filter(r=>r.tipo==="E").length; $("pStSai").textContent=hoje.filter(r=>r.tipo==="S").length; const tw=$("pTabelaWrap"); if(!hoje.length){tw.innerHTML=`<div class="empty">Nenhum registro hoje.</div>`;return;} tw.innerHTML=`<table><thead><tr><th>Hora</th><th>Tipo</th><th>Placa / NF</th><th>Motorista</th><th></th></tr></thead><tbody>`+hoje.map(r=>{const d=new Date(r.dataISO);return `<tr><td>${hhmm(d)}</td><td><span class="tag ${r.tipo==='E'?'e':'s'}">${r.tipo==='E'?'ENT':'SAÍ'}</span></td><td><b>${r.placa}</b><br><span style="color:var(--muted);font-size:.72rem">NF ${r.nf||'—'}${r.fabrica?' · '+r.fabrica:''}${r.lacre?' · lacre '+r.lacre:''}${r.km?' · '+r.km+' km':''}</span></td><td>${r.motorista||'—'}</td><td style="text-align:right;white-space:nowrap">${r.enviado?'<span class="env ok" title="enviado">☁✓</span>':`<span class="env pend" title="pendente — tocar p/ reenviar" onclick="pReenviar('${r.id}')">↻</span>`}<button class="del" onclick="pExcluir('${r.id}')">✕</button></td></tr>`;}).join("")+`</tbody></table>`; }
   function pExportar(){ const hoje=pstate.registros.filter(pHoje); if(!hoje.length){toast("Nada para exportar hoje");return;} const H=["ID","Tipo","Data","Hora","NF","Fábrica","Placa","Motorista","KM","Lacre"]; const rows=hoje.map(r=>{const d=new Date(r.dataISO);return [r.id,(r.tipo==="E"?"Entrada":"Saída"),`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`,hhmm(d),r.nf,r.fabrica,r.placa,r.motorista,r.km,r.lacre];}); const esc=v=>{v=String(v==null?"":v);return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}; const csv="﻿"+[H,...rows].map(r=>r.map(esc).join(";")).join("\r\n"); const d=new Date(); const nome=`portaria_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${deviceCode()}.csv`; const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=nome; document.body.appendChild(a); a.click(); a.remove(); toast("Portaria exportada: "+nome); }
   document.querySelectorAll("#pTipoSel button").forEach(b=>b.addEventListener("click",()=>pSetTipo(b.dataset.tipo)));
-  $("pBtnReg").addEventListener("click",pRegistrar); $("pBtnExport").addEventListener("click",pExportar); $("pBtnClear").addEventListener("click",pLimpar);
+  $("pBtnReg").addEventListener("click",pRegistrar);
+  { const be=$("pBtnExport"); if(be) be.addEventListener("click",pExportar); const bc=$("pBtnClear"); if(bc) bc.addEventListener("click",pLimpar); }
   pSetTipo("E"); pDatalists(); pRender(); pstate.registros.filter(r=>!r.enviado).forEach(pEnviar);
   window._portRender=pRender;
 })();
