@@ -228,9 +228,24 @@
         <button type="button" class="s" data-tipo="S">■ SAÍDA</button>
       </div>
       <div class="field"><label>Nota Fiscal (NF)</label><input type="text" id="pNf" inputmode="numeric" autocomplete="off" placeholder="Número da NF"></div>
-      <div class="field"><label>Fábrica</label><input type="text" id="pFabrica" list="pDlFabrica" autocomplete="off" placeholder="Fábrica de origem"><datalist id="pDlFabrica"></datalist></div>
-      <div class="field"><label>Placa</label><input type="text" id="pPlaca" list="pDlPlaca" autocomplete="off" placeholder="AAA-0000" style="text-transform:uppercase"><datalist id="pDlPlaca"></datalist></div>
-      <div class="field"><label>Motorista</label><input type="text" id="pMotorista" list="pDlMotorista" autocomplete="off" placeholder="Nome do motorista"><datalist id="pDlMotorista"></datalist></div>
+      <div class="field"><label>Fábrica</label>
+        <div class="combo" id="pFabricaCombo"><span class="lupa">🔍</span>
+          <input type="text" id="pFabricaSearch" class="combo-input" autocomplete="off" placeholder="Selecione ou pesquise">
+          <input type="hidden" id="pFabrica"><div class="combo-list" id="pFabricaList"></div>
+        </div>
+      </div>
+      <div class="field"><label>Placa</label>
+        <div class="combo" id="pPlacaCombo"><span class="lupa">🔍</span>
+          <input type="text" id="pPlacaSearch" class="combo-input" autocomplete="off" placeholder="Selecione ou pesquise" style="text-transform:uppercase">
+          <input type="hidden" id="pPlaca"><div class="combo-list" id="pPlacaList"></div>
+        </div>
+      </div>
+      <div class="field"><label>Motorista</label>
+        <div class="combo" id="pMotoristaCombo"><span class="lupa">🔍</span>
+          <input type="text" id="pMotoristaSearch" class="combo-input" autocomplete="off" placeholder="Selecione ou pesquise">
+          <input type="hidden" id="pMotorista"><div class="combo-list" id="pMotoristaList"></div>
+        </div>
+      </div>
       <div class="row2">
         <div class="field"><label>KM</label><input type="text" id="pKm" inputmode="numeric" autocomplete="off" placeholder="Hodômetro"></div>
         <div class="field" id="pLacreWrap"><label>N° do lacre</label><input type="text" id="pLacre" autocomplete="off" placeholder="Lacre (saída)"></div>
@@ -366,12 +381,13 @@ function initPlacaCombo(){
   inp.addEventListener("focus", abrirPlacaList);
   inp.addEventListener("input", ()=>{ $("placa").value=""; abrirPlacaList(); });
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const first=list.querySelector(".combo-item"); if(first) escolherPlaca(first.dataset.val); } else if(e.key==="Escape"){ fecharPlacaList(); } });
-  list.addEventListener("mousedown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolherPlaca(it.dataset.val); });
+  list.addEventListener("pointerdown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolherPlaca(it.dataset.val); });
   document.addEventListener("click", e=>{ if(!combo.contains(e.target)) fecharPlacaList(); });
 }
 
-// combo genérico com busca (operador, 2º operador…)
-function criarCombo(id, getItems){
+// combo genérico com busca (operador, placa, fábrica, motorista…)
+const _CLABEL={operadores:"operador",placas:"placa",fabricas:"fábrica",motoristas:"motorista"};
+function criarCombo(id, getItems, addTo){
   const combo=$(id+"Combo"), inp=$(id+"Search"), list=$(id+"List"), hid=$(id);
   function render(){
     const q=(inp.value||"").trim().toUpperCase();
@@ -387,9 +403,11 @@ function criarCombo(id, getItems){
   function fechar(){ combo.classList.remove("open"); }
   function escolher(val){
     if(val==="__add__"||val==="__novo__"){
-      let nome = val==="__add__" ? inp.value.trim() : (prompt("Nome do operador:")||"").trim();
+      let nome = val==="__add__" ? inp.value.trim() : (prompt("Novo(a) "+(_CLABEL[addTo]||"item")+":")||"").trim();
       if(!nome) return;
-      if(!OPERADORES.includes(nome)){ OPERADORES.push(nome); cfgSave(); }
+      if(addTo==="placas") nome=nome.toUpperCase();
+      const arr=getItems();
+      if(!arr.includes(nome)){ arr.push(nome); if(typeof cfgSave==="function") cfgSave(); }
       hid.value=nome; inp.value=nome;
     } else { hid.value=val; inp.value=val; }
     fechar();
@@ -397,7 +415,7 @@ function criarCombo(id, getItems){
   inp.addEventListener("focus", abrir);
   inp.addEventListener("input", ()=>{ hid.value=""; abrir(); });
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const f=list.querySelector(".combo-item"); if(f) escolher(f.dataset.val); } else if(e.key==="Escape") fechar(); });
-  list.addEventListener("mousedown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolher(it.dataset.val); });
+  list.addEventListener("pointerdown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolher(it.dataset.val); });
   document.addEventListener("click", e=>{ if(!combo.contains(e.target)) fechar(); });
   return { reset(){ hid.value=""; inp.value=""; fechar(); } };
 }
@@ -405,8 +423,8 @@ let _comboOper, _comboOper2;
 
 function initForm(){
   initPlacaCombo();
-  _comboOper  = criarCombo("operador",  ()=>OPERADORES);
-  _comboOper2 = criarCombo("operador2", ()=>OPERADORES);
+  _comboOper  = criarCombo("operador",  ()=>OPERADORES, "operadores");
+  _comboOper2 = criarCombo("operador2", ()=>OPERADORES, "operadores");
   fillSelect($("turno"), TURNOS, "", "— Turno —");
   $("opChoices").innerHTML = OPERACOES.map(o=>`<button data-op="${o}">${o.replace("Descarregar e Carregar","Descarr. + Carreg.")}</button>`).join("");
   updateOpButtons();
@@ -575,11 +593,25 @@ window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.va
   function pHoje(r){ try{ return ymd(new Date(r.dataISO))===ymd(new Date()); }catch(e){ return false; } }
   function pLem(k){ try{ return JSON.parse(store.get(k))||[]; }catch(e){ return []; } }
   function pLembrar(k,v){ v=(v||"").trim(); if(!v)return; let a=pLem(k); if(!a.includes(v)){ a.push(v); store.set(k,JSON.stringify(a.slice(-80))); } }
-  function pDatalists(){ $("pDlPlaca").innerHTML=PLACAS.map(p=>`<option value="${p}">`).join(""); $("pDlFabrica").innerHTML=FABRICAS.map(p=>`<option value="${p}">`).join(""); $("pDlMotorista").innerHTML=MOTORISTAS.map(p=>`<option value="${p}">`).join(""); }
-  window._pDatalists=pDatalists;
+  let pcPlaca, pcFab, pcMot;   // combos de busca (criados no init)
   function pSetTipo(t){ ptipo=t; document.querySelectorAll("#pTipoSel button").forEach(b=>b.classList.toggle("sel", b.dataset.tipo===t)); $("pLacreWrap").style.display=(t==="S")?"":"none"; $("pBtnReg").textContent=(t==="E")?"▶ Registrar ENTRADA":"■ Registrar SAÍDA"; $("pBtnReg").classList.toggle("s", t==="S"); }
   function pEnviar(r){ if(!FORM_ACTION)return; const d=new Date(r.dataISO); const data=pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); const linha=["PORT",r.tipo,r.id,data,hhmm(d),r.nf,r.fabrica,r.placa,r.motorista,r.km,r.lacre].join(";"); const body=ENTRY_FIELD+"="+encodeURIComponent(linha); fetch(FORM_ACTION,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body}).then(()=>{r.enviado=true;psave();pRender();}).catch(()=>{}); }
-  function pRegistrar(){ const nf=$("pNf").value.trim(), placa=$("pPlaca").value.trim().toUpperCase(); if(!placa){toast("Informe a placa");$("pPlaca").focus();return;} if(!nf){toast("Informe a NF");$("pNf").focus();return;} const fabrica=$("pFabrica").value.trim(), motorista=$("pMotorista").value.trim(), km=$("pKm").value.trim(), lacre=(ptipo==="S")?$("pLacre").value.trim():""; const rec={id:pNextId(),tipo:ptipo,dataISO:new Date().toISOString(),nf,fabrica,placa,motorista,km,lacre,enviado:false}; pstate.registros.push(rec); psave(); let mudou=false; if(fabrica&&!FABRICAS.includes(fabrica)){FABRICAS.push(fabrica);mudou=true;} if(motorista&&!MOTORISTAS.includes(motorista)){MOTORISTAS.push(motorista);mudou=true;} if(placa&&!PLACAS.includes(placa)){PLACAS.push(placa);mudou=true;} if(mudou)cfgSave(); pEnviar(rec); ["pNf","pFabrica","pPlaca","pMotorista","pKm","pLacre"].forEach(id=>$(id).value=""); pDatalists(); pRender(); toast((ptipo==="E"?"Entrada":"Saída")+" registrada · "+placa+" · "+hhmm(new Date())); }
+  function _val(hid,search){ let v=($(hid).value||"").trim(); if(!v) v=($(search).value||"").trim(); return v; }
+  function pRegistrar(){
+    const nf=$("pNf").value.trim();
+    const placa=_val("pPlaca","pPlacaSearch").toUpperCase();
+    if(!placa){ toast("Informe a placa"); $("pPlacaSearch").focus(); return; }
+    if(!nf){ toast("Informe a NF"); $("pNf").focus(); return; }
+    const fabrica=_val("pFabrica","pFabricaSearch"), motorista=_val("pMotorista","pMotoristaSearch");
+    const km=$("pKm").value.trim(), lacre=(ptipo==="S")?$("pLacre").value.trim():"";
+    const rec={id:pNextId(),tipo:ptipo,dataISO:new Date().toISOString(),nf,fabrica,placa,motorista,km,lacre,enviado:false};
+    pstate.registros.push(rec); psave();
+    let mudou=false; if(fabrica&&!FABRICAS.includes(fabrica)){FABRICAS.push(fabrica);mudou=true;} if(motorista&&!MOTORISTAS.includes(motorista)){MOTORISTAS.push(motorista);mudou=true;} if(placa&&!PLACAS.includes(placa)){PLACAS.push(placa);mudou=true;} if(mudou&&typeof cfgSave==="function")cfgSave();
+    pEnviar(rec);
+    $("pNf").value=""; $("pKm").value=""; $("pLacre").value="";
+    if(pcPlaca)pcPlaca.reset(); if(pcFab)pcFab.reset(); if(pcMot)pcMot.reset();
+    pRender(); toast((ptipo==="E"?"Entrada":"Saída")+" registrada · "+placa+" · "+hhmm(new Date()));
+  }
   window.pExcluir=function(id){ if(!confirm("Excluir este registro?"))return; pstate.registros=pstate.registros.filter(r=>r.id!==id); psave(); pRender(); };
   window.pReenviar=function(id){ const r=pstate.registros.find(x=>x.id===id); if(r)pEnviar(r); };
   function pLimpar(){ if(!confirm("Apagar os registros de HOJE da portaria?\n(já enviados — exporte antes se precisar)"))return; pstate.registros=pstate.registros.filter(r=>!pHoje(r)); psave(); pRender(); toast("Portaria: registros de hoje apagados"); }
@@ -588,7 +620,8 @@ window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.va
   document.querySelectorAll("#pTipoSel button").forEach(b=>b.addEventListener("click",()=>pSetTipo(b.dataset.tipo)));
   $("pBtnReg").addEventListener("click",pRegistrar);
   { const be=$("pBtnExport"); if(be) be.addEventListener("click",pExportar); const bc=$("pBtnClear"); if(bc) bc.addEventListener("click",pLimpar); }
-  pSetTipo("E"); pDatalists(); pRender(); pstate.registros.filter(r=>!r.enviado).forEach(pEnviar);
+  pcPlaca=criarCombo("pPlaca",()=>PLACAS,"placas"); pcFab=criarCombo("pFabrica",()=>FABRICAS,"fabricas"); pcMot=criarCombo("pMotorista",()=>MOTORISTAS,"motoristas");
+  pSetTipo("E"); pRender(); pstate.registros.filter(r=>!r.enviado).forEach(pEnviar);
   window._portRender=pRender;
 })();
 
