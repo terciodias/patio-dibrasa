@@ -58,6 +58,7 @@
   .op-choices button{padding:11px 6px;border-radius:11px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);font-weight:650;font-size:.82rem;cursor:pointer;line-height:1.15;}
   .op-choices button.sel{background:var(--accent);border-color:var(--accent);color:#04201f;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
   .btn-entrada{width:100%;margin-top:6px;padding:18px;border:none;border-radius:14px;background:var(--entrada);color:#fff;font-size:1.2rem;font-weight:800;letter-spacing:.02em;cursor:pointer;box-shadow:0 4px 0 var(--entrada-d);transition:transform .05s,box-shadow .05s;}
   .btn-entrada:active{transform:translateY(3px);box-shadow:0 1px 0 var(--entrada-d);}
   .btn-entrada:disabled{opacity:.4;box-shadow:0 4px 0 var(--entrada-d);cursor:not-allowed;}
@@ -249,9 +250,13 @@
           <input type="hidden" id="pMotorista"><div class="combo-list" id="pMotoristaList"></div>
         </div>
       </div>
-      <div class="row2">
-        <div class="field"><label>KM</label><input type="text" id="pKm" inputmode="numeric" autocomplete="off" placeholder="Hodômetro"></div>
-        <div class="field" id="pLacreWrap"><label>N° do lacre</label><input type="text" id="pLacre" autocomplete="off" placeholder="Lacre (saída)"></div>
+      <div class="field"><label>KM</label><input type="text" id="pKm" inputmode="numeric" autocomplete="off" placeholder="Hodômetro"></div>
+      <div class="field" id="pLacreWrap"><label>N° do(s) lacre(s)</label>
+        <div class="row3">
+          <input type="text" id="pLacre1" autocomplete="off" placeholder="Lacre 1">
+          <input type="text" id="pLacre2" autocomplete="off" placeholder="Lacre 2">
+          <input type="text" id="pLacre3" autocomplete="off" placeholder="Lacre 3">
+        </div>
       </div>
       <div class="auto-note">📅 <b>Data e hora</b> são preenchidas automaticamente ao registrar.</div>
       <button class="btn-reg" id="pBtnReg">▶ Registrar ENTRADA</button>
@@ -601,7 +606,8 @@ window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.va
   function pLem(k){ try{ return JSON.parse(store.get(k))||[]; }catch(e){ return []; } }
   function pLembrar(k,v){ v=(v||"").trim(); if(!v)return; let a=pLem(k); if(!a.includes(v)){ a.push(v); store.set(k,JSON.stringify(a.slice(-80))); } }
   let pcPlaca, pcFab, pcMot;   // combos de busca (criados no init)
-  function pSetTipo(t){ ptipo=t; document.querySelectorAll("#pTipoSel button").forEach(b=>b.classList.toggle("sel", b.dataset.tipo===t)); $("pLacreWrap").style.display=(t==="S")?"":"none"; $("pBtnReg").textContent=(t==="E")?"▶ Registrar ENTRADA":"■ Registrar SAÍDA"; $("pBtnReg").classList.toggle("s", t==="S"); }
+  function pClearFields(){ ["pNf","pKm","pLacre1","pLacre2","pLacre3"].forEach(id=>{const e=$(id); if(e)e.value="";}); if(pcPlaca)pcPlaca.reset(); if(pcFab)pcFab.reset(); if(pcMot)pcMot.reset(); }
+  function pSetTipo(t){ const mudou=(t!==ptipo); ptipo=t; document.querySelectorAll("#pTipoSel button").forEach(b=>b.classList.toggle("sel", b.dataset.tipo===t)); $("pLacreWrap").style.display=(t==="S")?"":"none"; $("pBtnReg").textContent=(t==="E")?"▶ Registrar ENTRADA":"■ Registrar SAÍDA"; $("pBtnReg").classList.toggle("s", t==="S"); if(mudou) pClearFields(); }
   function pEnviar(r){ if(!FORM_ACTION)return; const d=new Date(r.dataISO); const data=pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); const linha=["PORT",r.tipo,r.id,data,hhmm(d),r.nf,r.fabrica,r.placa,r.motorista,r.km,r.lacre].join(";"); const body=ENTRY_FIELD+"="+encodeURIComponent(linha); fetch(FORM_ACTION,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body}).then(()=>{r.enviado=true;psave();pRender();}).catch(()=>{}); }
   function _val(hid,search){ let v=($(hid).value||"").trim(); if(!v) v=($(search).value||"").trim(); return v; }
   function pRegistrar(){
@@ -610,13 +616,13 @@ window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.va
     if(!placa){ toast("Informe a placa"); $("pPlacaSearch").focus(); return; }
     if(!nf){ toast("Informe a NF"); $("pNf").focus(); return; }
     const fabrica=_val("pFabrica","pFabricaSearch"), motorista=_val("pMotorista","pMotoristaSearch");
-    const km=$("pKm").value.trim(), lacre=(ptipo==="S")?$("pLacre").value.trim():"";
+    const km=$("pKm").value.trim();
+    const lacre=(ptipo==="S") ? [$("pLacre1").value,$("pLacre2").value,$("pLacre3").value].map(x=>x.trim()).filter(Boolean).join(" / ") : "";
     const rec={id:pNextId(),tipo:ptipo,dataISO:new Date().toISOString(),nf,fabrica,placa,motorista,km,lacre,enviado:false};
     pstate.registros.push(rec); psave();
     let mudou=false; if(fabrica&&!FABRICAS.includes(fabrica)){FABRICAS.push(fabrica);mudou=true;} if(motorista&&!MOTORISTAS.includes(motorista)){MOTORISTAS.push(motorista);mudou=true;} if(placa&&!PLACAS.includes(placa)){PLACAS.push(placa);mudou=true;} if(mudou&&typeof cfgSave==="function")cfgSave();
     pEnviar(rec);
-    $("pNf").value=""; $("pKm").value=""; $("pLacre").value="";
-    if(pcPlaca)pcPlaca.reset(); if(pcFab)pcFab.reset(); if(pcMot)pcMot.reset();
+    pClearFields();
     pRender(); toast((ptipo==="E"?"Entrada":"Saída")+" registrada · "+placa+" · "+hhmm(new Date()));
   }
   window.pExcluir=function(id){ if(!confirm("Excluir este registro?"))return; pstate.registros=pstate.registros.filter(r=>r.id!==id); psave(); pRender(); };
