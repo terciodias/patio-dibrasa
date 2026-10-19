@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Registrador de TMA — DIBRASA</title>
 <meta name="theme-color" content="#0F6E6E">
 <meta name="mobile-web-app-capable" content="yes">
@@ -41,10 +44,10 @@
   .field{margin-bottom:13px;}
   select,input[type=text]{width:100%;font-size:1.05rem;padding:12px 12px;border-radius:11px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-family:var(--sans);appearance:none;}
   select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px;}
-  .combo{position:relative;}
+  .combo{position:relative;scroll-margin-top:78px;}
   .combo .lupa{position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none;opacity:.65;font-size:1rem;}
   .combo-input{padding-left:40px !important;}
-  .combo-list{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:30;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;max-height:280px;overflow-y:auto;box-shadow:0 10px 28px rgba(0,0,0,.45);display:none;}
+  .combo-list{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:30;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;max-height:230px;overflow-y:auto;box-shadow:0 10px 28px rgba(0,0,0,.45);display:none;}
   .combo.open .combo-list{display:block;}
   .combo-item{padding:12px 15px;font-size:1.02rem;cursor:pointer;border-bottom:1px solid var(--line);color:var(--ink);}
   .combo-item:last-child{border-bottom:none;}
@@ -367,7 +370,7 @@ function renderPlacaList(){
                         : `<div class="combo-item add" data-val="__nova__">+ Nova placa…</div>`;
   $("placaList").innerHTML = html;
 }
-function abrirPlacaList(){ renderPlacaList(); $("placaCombo").classList.add("open"); }
+function abrirPlacaList(){ renderPlacaList(); $("placaCombo").classList.add("open"); if(window.innerWidth<=768){ setTimeout(()=>{ try{ $("placaCombo").scrollIntoView({block:"start",behavior:"smooth"}); }catch(e){} },120); } }
 function fecharPlacaList(){ $("placaCombo").classList.remove("open"); }
 function resetPlaca(){ $("placa").value=""; $("placaSearch").value=""; fecharPlacaList(); }
 function escolherPlaca(val){
@@ -379,6 +382,7 @@ function escolherPlaca(val){
 function initPlacaCombo(){
   const inp=$("placaSearch"), list=$("placaList"), combo=$("placaCombo");
   inp.addEventListener("focus", abrirPlacaList);
+  inp.addEventListener("click", abrirPlacaList);
   inp.addEventListener("input", ()=>{ $("placa").value=""; abrirPlacaList(); });
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const first=list.querySelector(".combo-item"); if(first) escolherPlaca(first.dataset.val); } else if(e.key==="Escape"){ fecharPlacaList(); } });
   list.addEventListener("pointerdown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolherPlaca(it.dataset.val); });
@@ -399,7 +403,7 @@ function criarCombo(id, getItems, addTo){
                      :`<div class="combo-item add" data-val="__novo__">+ Outro…</div>`;
     list.innerHTML=html;
   }
-  function abrir(){ render(); combo.classList.add("open"); }
+  function abrir(){ render(); combo.classList.add("open"); if(window.innerWidth<=768){ setTimeout(()=>{ try{ combo.scrollIntoView({block:"start",behavior:"smooth"}); }catch(e){} },120); } }
   function fechar(){ combo.classList.remove("open"); }
   function escolher(val){
     if(val==="__add__"||val==="__novo__"){
@@ -413,6 +417,7 @@ function criarCombo(id, getItems, addTo){
     fechar();
   }
   inp.addEventListener("focus", abrir);
+  inp.addEventListener("click", abrir);
   inp.addEventListener("input", ()=>{ hid.value=""; abrir(); });
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const f=list.querySelector(".combo-item"); if(f) escolher(f.dataset.val); } else if(e.key==="Escape") fechar(); });
   list.addEventListener("pointerdown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolher(it.dataset.val); });
