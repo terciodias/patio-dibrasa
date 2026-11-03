@@ -213,15 +213,6 @@
     <div id="tabelaWrap"><div class="empty">Nenhum atendimento concluído ainda.</div></div>
   </div>
 
-  <div class="card">
-    <h2>Acompanhamento por data · deste aparelho</h2>
-    <input type="date" id="acompData" class="acomp-date">
-    <div class="stat" style="margin-bottom:0">
-      <div><div class="n" id="acDiaN">0</div><div class="l">Atend. no dia</div></div>
-      <div><div class="n" id="acDiaTma">—</div><div class="l">TMA do dia</div></div>
-    </div>
-    <div class="hint">Considera só os registros feitos <b>neste celular</b>. Para o TMA do pátio todo, use o painel no computador.</div>
-  </div>
   </div><!--/view-patio-->
 
   <div id="view-portaria" hidden>
@@ -398,22 +389,25 @@ function initPlacaCombo(){
 
 // combo genérico com busca (operador, placa, fábrica, motorista…)
 const _CLABEL={operadores:"operador",placas:"placa",fabricas:"fábrica",motoristas:"motorista"};
-function criarCombo(id, getItems, addTo){
+function criarCombo(id, getItems, addTo, selectOnly){
   const combo=$(id+"Combo"), inp=$(id+"Search"), list=$(id+"List"), hid=$(id);
+  function matchExato(){ const q=(inp.value||"").trim(); return getItems().find(v=>v.toUpperCase()===q.toUpperCase())||""; }
   function render(){
     const q=(inp.value||"").trim().toUpperCase();
     const arr=getItems().filter(v=>!q||v.toUpperCase().includes(q));
     let html=arr.map(v=>`<div class="combo-item" data-val="${v}">${v}</div>`).join("");
-    if(!arr.length) html+=`<div class="combo-empty">Nada encontrado</div>`;
-    const exata=arr.some(v=>v.toUpperCase()===q);
-    html+=(q&&!exata)?`<div class="combo-item add" data-val="__add__">+ Adicionar “${inp.value.trim()}”</div>`
-                     :`<div class="combo-item add" data-val="__novo__">+ Outro…</div>`;
+    if(!arr.length) html+=`<div class="combo-empty">${selectOnly?"Nenhum cadastrado — cadastre no ⚙":"Nada encontrado"}</div>`;
+    if(!selectOnly){
+      const exata=arr.some(v=>v.toUpperCase()===q);
+      html+=(q&&!exata)?`<div class="combo-item add" data-val="__add__">+ Adicionar “${inp.value.trim()}”</div>`
+                       :`<div class="combo-item add" data-val="__novo__">+ Outro…</div>`;
+    }
     list.innerHTML=html;
   }
   function abrir(){ render(); combo.classList.add("open"); if(window.innerWidth<=768){ setTimeout(()=>{ try{ combo.scrollIntoView({block:"start",behavior:"smooth"}); }catch(e){} },120); } }
   function fechar(){ combo.classList.remove("open"); }
   function escolher(val){
-    if(val==="__add__"||val==="__novo__"){
+    if(!selectOnly && (val==="__add__"||val==="__novo__")){
       let nome = val==="__add__" ? inp.value.trim() : (prompt("Novo(a) "+(_CLABEL[addTo]||"item")+":")||"").trim();
       if(!nome) return;
       if(addTo==="placas") nome=nome.toUpperCase();
@@ -425,7 +419,7 @@ function criarCombo(id, getItems, addTo){
   }
   inp.addEventListener("focus", abrir);
   inp.addEventListener("click", abrir);
-  inp.addEventListener("input", ()=>{ hid.value=""; abrir(); });
+  inp.addEventListener("input", ()=>{ hid.value=matchExato(); abrir(); });
   inp.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const f=list.querySelector(".combo-item"); if(f) escolher(f.dataset.val); } else if(e.key==="Escape") fechar(); });
   list.addEventListener("pointerdown", e=>{ const it=e.target.closest(".combo-item"); if(!it) return; e.preventDefault(); escolher(it.dataset.val); });
   document.addEventListener("click", e=>{ if(!combo.contains(e.target)) fechar(); });
@@ -609,18 +603,24 @@ window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.va
   function pClearFields(){ ["pNf","pKm","pLacre1","pLacre2","pLacre3"].forEach(id=>{const e=$(id); if(e)e.value="";}); if(pcPlaca)pcPlaca.reset(); if(pcFab)pcFab.reset(); if(pcMot)pcMot.reset(); }
   function pSetTipo(t){ const mudou=(t!==ptipo); ptipo=t; document.querySelectorAll("#pTipoSel button").forEach(b=>b.classList.toggle("sel", b.dataset.tipo===t)); $("pLacreWrap").style.display=(t==="S")?"":"none"; $("pBtnReg").textContent=(t==="E")?"▶ Registrar ENTRADA":"■ Registrar SAÍDA"; $("pBtnReg").classList.toggle("s", t==="S"); if(mudou) pClearFields(); }
   function pEnviar(r){ if(!FORM_ACTION)return; const d=new Date(r.dataISO); const data=pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); const linha=["PORT",r.tipo,r.id,data,hhmm(d),r.nf,r.fabrica,r.placa,r.motorista,r.km,r.lacre].join(";"); const body=ENTRY_FIELD+"="+encodeURIComponent(linha); fetch(FORM_ACTION,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body}).then(()=>{r.enviado=true;psave();pRender();}).catch(()=>{}); }
-  function _val(hid,search){ let v=($(hid).value||"").trim(); if(!v) v=($(search).value||"").trim(); return v; }
   function pRegistrar(){
     const nf=$("pNf").value.trim();
-    const placa=_val("pPlaca","pPlacaSearch").toUpperCase();
-    if(!placa){ toast("Informe a placa"); $("pPlacaSearch").focus(); return; }
-    if(!nf){ toast("Informe a NF"); $("pNf").focus(); return; }
-    const fabrica=_val("pFabrica","pFabricaSearch"), motorista=_val("pMotorista","pMotoristaSearch");
     const km=$("pKm").value.trim();
-    const lacre=(ptipo==="S") ? [$("pLacre1").value,$("pLacre2").value,$("pLacre3").value].map(x=>x.trim()).filter(Boolean).join(" / ") : "";
+    const fabrica=($("pFabrica").value||"").trim();      // só da lista (hidden)
+    const placa=($("pPlaca").value||"").trim().toUpperCase();
+    const motorista=($("pMotorista").value||"").trim();
+    if(!nf){ toast("Informe a NF"); $("pNf").focus(); return; }
+    if(!fabrica){ toast("Selecione a Fábrica na lista"); $("pFabricaSearch").focus(); return; }
+    if(!placa){ toast("Selecione a Placa na lista"); $("pPlacaSearch").focus(); return; }
+    if(!motorista){ toast("Selecione o Motorista na lista"); $("pMotoristaSearch").focus(); return; }
+    if(!km){ toast("Informe o KM"); $("pKm").focus(); return; }
+    let lacre="";
+    if(ptipo==="S"){
+      lacre=[$("pLacre1").value,$("pLacre2").value,$("pLacre3").value].map(x=>x.trim()).filter(Boolean).join(" / ");
+      if(!lacre){ toast("Informe ao menos o Lacre 1"); $("pLacre1").focus(); return; }
+    }
     const rec={id:pNextId(),tipo:ptipo,dataISO:new Date().toISOString(),nf,fabrica,placa,motorista,km,lacre,enviado:false};
     pstate.registros.push(rec); psave();
-    let mudou=false; if(fabrica&&!FABRICAS.includes(fabrica)){FABRICAS.push(fabrica);mudou=true;} if(motorista&&!MOTORISTAS.includes(motorista)){MOTORISTAS.push(motorista);mudou=true;} if(placa&&!PLACAS.includes(placa)){PLACAS.push(placa);mudou=true;} if(mudou&&typeof cfgSave==="function")cfgSave();
     pEnviar(rec);
     pClearFields();
     pRender(); toast((ptipo==="E"?"Entrada":"Saída")+" registrada · "+placa+" · "+hhmm(new Date()));
@@ -633,7 +633,7 @@ window.addEventListener("pageshow", ()=>{ const ac=$("acompData"); if(ac){ ac.va
   document.querySelectorAll("#pTipoSel button").forEach(b=>b.addEventListener("click",()=>pSetTipo(b.dataset.tipo)));
   $("pBtnReg").addEventListener("click",pRegistrar);
   { const be=$("pBtnExport"); if(be) be.addEventListener("click",pExportar); const bc=$("pBtnClear"); if(bc) bc.addEventListener("click",pLimpar); }
-  pcPlaca=criarCombo("pPlaca",()=>PLACAS,"placas"); pcFab=criarCombo("pFabrica",()=>FABRICAS,"fabricas"); pcMot=criarCombo("pMotorista",()=>MOTORISTAS,"motoristas");
+  pcPlaca=criarCombo("pPlaca",()=>PLACAS,"placas",true); pcFab=criarCombo("pFabrica",()=>FABRICAS,"fabricas",true); pcMot=criarCombo("pMotorista",()=>MOTORISTAS,"motoristas",true);
   pSetTipo("E"); pRender(); pstate.registros.filter(r=>!r.enviado).forEach(pEnviar);
   window._portRender=pRender;
 })();
