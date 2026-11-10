@@ -296,7 +296,7 @@
 "use strict";
 const PLACAS_DEFAULT = ["PQW-3J17","SMQ-8E34","UJM-9A67","ROA-9H51","ROJ-8A15","ROX-8A70","SNC-7C72","PSS-7576","ROX-5A86","PSX-9112","NNB-9842","NXC-2740","ROA-9H59","FRETE"];
 const OPERADORES_DEFAULT = ["Alessandro","Nayon","Zequias"];
-const FABRICAS_DEFAULT = ["F. Maranhão","F. Teresina","F. Aquiraz","F. Pernambuco","F. João Pessoa"];
+const FABRICAS_DEFAULT = ["F. Maranhão","F. Teresina","F. Aquiraz","F. Pernambuco","F. João Pessoa","F. Sergipe","Santa Inês","Viana"];
 const MOTORISTAS_DEFAULT = ["Adailto","Alcebiades","Emilio","Manoel","Paulo","Urbeth","Marcelino","Rodrigues","Durans","Sivaldo","Veloso"];
 const OPERACOES = ["Carregamento","Descarregamento","Descarregar e Carregar"];
 const TURNOS = ["A","B","C"];
@@ -318,7 +318,14 @@ const pad = n => String(n).padStart(2,"0");
 
 // ---- listas configuráveis (persistidas) ----
 const CFG_PLACAS="dibrasa_cfg_placas_v1", CFG_OPER="dibrasa_cfg_oper_v1", CFG_FAB="dibrasa_cfg_fab_v1", CFG_MOT="dibrasa_cfg_mot_v1";
-function cfgGet(k,def){ try{ const a=JSON.parse(store.get(k)); return Array.isArray(a)?a:def.slice(); }catch(e){ return def.slice(); } }
+// lista-mestra (def, mantida no código) SEMPRE entra e vem primeiro; extras locais do aparelho vêm depois.
+// assim, novos itens que eu adicionar no código chegam a TODOS os celulares ao abrir, sem ficar preso na lista antiga.
+function cfgGet(k,def){
+  let saved=null; try{ saved=JSON.parse(store.get(k)); }catch(e){ saved=null; }
+  const out=def.slice();
+  if(Array.isArray(saved)){ for(const s of saved){ if(s && !out.includes(s)) out.push(s); } }
+  return out;
+}
 let PLACAS=cfgGet(CFG_PLACAS,PLACAS_DEFAULT), OPERADORES=cfgGet(CFG_OPER,OPERADORES_DEFAULT), FABRICAS=cfgGet(CFG_FAB,FABRICAS_DEFAULT), MOTORISTAS=cfgGet(CFG_MOT,MOTORISTAS_DEFAULT);
 function cfgSave(){ store.set(CFG_PLACAS,JSON.stringify(PLACAS)); store.set(CFG_OPER,JSON.stringify(OPERADORES)); store.set(CFG_FAB,JSON.stringify(FABRICAS)); store.set(CFG_MOT,JSON.stringify(MOTORISTAS)); }
 const hhmm = d => pad(d.getHours())+":"+pad(d.getMinutes());
